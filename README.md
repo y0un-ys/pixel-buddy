@@ -1,73 +1,57 @@
-# pixel-buddy 🐾
+# Pixel Buddy 🐾
 
-귀여운 도트 동물 친구와 함께하는 Windows·macOS 데스크톱 펫.
+귀여운 동물 친구가 컴퓨터를 함께 사용하는 Windows/macOS 데스크톱 펫.
 
-**현재 버전:** v0.4.1 (행동 애니메이션 개선)
+**개발 버전:** v0.4.4 · **개발 브랜치:** `dev` (안정 버전만 `main`에 병합)
 
-**Repository:** https://github.com/y0un-ys/pixel-buddy
+## 현재 기능
 
-# Pixel Buddy v0.4.1 — 공통 캐릭터 도트 행동 애니메이션 개선
+- 동물 5종: 고양이, 강아지, 곰, 여우, 토끼
+- 새 3/4 반측면 캐릭터 PNG: `assets/illustrations/{cat,dog,bear,fox,rabbit}.png`
+- 공통 `BuddyScene`에서 메인 화면·상점 미리보기·인벤토리 미리보기 렌더링
+- 컴퓨터(노트북/데스크톱/듀얼), 책상, 소품, 테마 및 구매/장착 시스템
+- 타이핑/마우스/게임/영상 시청/휴식 상태 감지 및 성장/코인
+- 이전 저장 데이터 경로와 호환
 
-Windows + macOS 공통 소스입니다. 기존 v0.3.1 게임 데이터와 상점/동물/레벨/코인 구조를 유지합니다.
+## v0.4.4 — 일러스트 앱 연결
 
-## 이번 변경
-- 원본 PNG 스프라이트 시트 25개 추가 (`assets/sprites/`): 동물 5종 × 행동 5종, 각각 4프레임. 실제 리소스를 두 OS에 공통 적용합니다.
-- 강아지/고양이/곰/여우/토끼의 귀, 털색, 눈, 볼, 입 모양을 따로 디자인했습니다.
-- 타이핑/마우스/영상/게임/휴식 상태마다 눈과 표정이 달라집니다. 눈깜빡임 포함.
-- 기존 의상/머리띠/소품/책상/컴퓨터는 기존 코드 레이어로 계속 표현됩니다.
-- 이미지 리소스가 없으면 기본 도형으로 대체합니다.
-- PyInstaller Windows 및 macOS 스크립트에 `assets` 번들링 옵션을 추가했습니다.
-- 그래픽 원본을 다시 생성할 경우 `python -m pip install Pillow` 후 `python tools/generate_sprites.py` 실행.
+- 확정된 귀여운 일러스트 5종을 **실제 앱에 연결**했습니다.
+- 별도 SVG 의자·몸통·손 레이어를 제거하여 중복 그림과 떠다니는 손 문제를 방지했습니다.
+- 책상, 컴퓨터, 소품을 그림 앞쪽에 렌더링하여 겹침 순서를 통일했습니다.
+- 그림이 없는 이전 소스에서는 기존 SVG 장면으로 대체합니다.
+- GitHub Actions에서 실제 Qt 위젯을 그려 PNG로 캡처하는 시각 검증 도구를 추가했습니다.
+- 테스트: `python -m pytest -q` / 실제 화면 캡처: `python tools/preview_illustrated_pet.py`
 
-## Windows 빌드
-1. 트레이에서 기존 Pixel Buddy 완전 종료.
-2. `build_exe.bat` 더블클릭. 최초 빌드 때 Python 3.11+와 인터넷이 필요합니다.
-3. `dist/PixelBuddy.exe` 실행.
+**아직 남은 작업:** 새 PNG의 손 모양은 정적인 기본 자세입니다. 행동별 앞발 포즈와 의상·머리띠 전용 일러스트는 후속 버전에서 작업합니다. Mac의 실제 화면 동작과 항상 위 동작은 기기에서 추가 검증이 필요합니다.
 
-## macOS 빌드
-1. Mac에서 터미널을 열고 프로젝트 폴더로 이동합니다.
-2. `bash build_mac.command` 실행. Python 3.11+ 필요.
-3. `dist/PixelBuddy.app` 실행.
+## 실행/빌드
 
-## 개발 테스트
-`PYTHONPATH=src python -m pytest -q` (32 passed, Linux 기반 테스트). Windows/macOS 네이티브 실행 및 UI 시각 검증은 해당 OS에서 별도로 필요합니다.
+Python 3.11 이상 필요.
 
-## 유의사항
-- 이번 버전은 캐릭터 그래픽의 **첫 번째 개선 구간**입니다. 고해상도 일러스트나 완성된 전신 프레임 애니메이션이 아닌 64×56 픽셀 얼굴 스프라이트와 기존 동작 레이어의 혼합 방식입니다.
-- 저장 데이터 위치는 기존과 동일하며 별도로 백업해 두는 것을 권장합니다.
-- 자동 업데이트 기능은 이 버전에 포함되지 않습니다.
-
-## GitHub dev 브랜치에 소스 업로드
-
-이 저장소의 `main` 브랜치는 안정 버전용이며, 개발 작업은 `dev`에서 진행합니다.
-
-로컬에서 최신 파일을 `dev`에 올리려면 원격 저장소를 `git clone -b dev https://github.com/y0un-ys/pixel-buddy.git`로 가져온 다음, **압축을 푼 이 폴더의 내용 전체**를 클론 폴더에 복사하세요. 이어서 아래를 실행합니다.
+### macOS (Apple Silicon 또는 Intel)
 
 ```bash
-git add .
-git commit -m "feat: add Pixel Buddy v0.4.1 prototype source and sprites"
-git push origin dev
+git clone -b dev https://github.com/y0un-ys/pixel-buddy.git
+cd pixel-buddy
+bash build_mac.command
+open dist/PixelBuddy.app
 ```
 
-`main`으로는 바로 푸시하지 않습니다. 검수 후 Pull Request로 병합합니다.
+이미 체크아웃했다면 `git switch dev && git pull origin dev` 후 빌드하세요.
 
+macOS Gatekeeper가 미서명 `.command`를 차단하면 Finder 더블클릭 대신 위의 `bash build_mac.command`를 사용하세요. 입력 감지에는 macOS **개인정보 보호 및 보안 → 입력 모니터링** 권한이 필요할 수 있습니다. 입력 글자는 저장하지 않습니다.
 
-## v0.4.1 변경 사항
+### Windows
 
-- 타이핑: 양손을 서로 다른 리듬으로 움직이고 눌리는 키 강조
-- 마우스: 마우스/화면 커서 이동, 클릭 효과
-- 게임: 양손 컨트롤러와 점프하는 화면 캐릭터
-- 영상: 재생 진행바와 팝콘을 집어먹는 동작
-- 휴식: 호흡 동작 및 잠깐 나타나는 Z 표시
-- 애니메이션 4프레임 상태를 순수 Python 함수로 분리해 테스트 가능
+`build_exe.bat` 실행 후 `dist/PixelBuddy.exe` 실행.
 
+## 개발 및 검증
 
-## v0.4.2 — Cozy character refresh
+```bash
+python -m pip install -e . pytest
+python -m pytest -q
+```
 
-- Five original rounded chibi pixel characters with smaller ears and softer eyes.
-- Computer thumbnails preview typing instead of showing a gaming controller.
-- Plants, lamps and plushies sit on the widened desk surface.
-- macOS topmost preference persists across launches; the companion uses a regular frameless window to avoid utility-panel hiding.
-- Regenerate 25 sprite sheets using `python tools/generate_sprites.py` (requires Pillow).
+CI는 Linux에서 자동화 테스트와 오프스크린 Qt 캡처를 실행합니다. 실제 Windows/macOS 실행과 패키징은 해당 OS에서 별도로 확인해야 합니다.
 
-This is a first visual style pass. Side-facing full-body actions and full shop visual polish remain future work.
+`main`은 안정 배포용으로 유지하며, 기능 개발은 `dev`에 커밋합니다. 자동 업데이트는 아직 포함되어 있지 않습니다.
