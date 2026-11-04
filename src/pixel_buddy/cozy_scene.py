@@ -206,8 +206,7 @@ def scene_svg(species="cat", mode="typing", pc="laptop", prop="", desk="", outfi
         out += [_ellipse(265,217,13,8,cream,EDGE,2),
                 _ellipse(286,219,11,7,cream,EDGE,2)]
     out += ['<!--PET-PAWS-END-->']
-    if mode == "idle":
-        out += ['<text x="260" y="132" font-size="25" font-family="sans-serif" fill="#B39BC8">z</text>']
+    # Idle is awake and resting. Sleep-only cues live in activity_effects.py.
     if reaction:
         mark = {"happy":"♥","sleep":"z","curious":"?","coffee":"♡","stretch":"!","snack":"♪"}.get(reaction,"♥")
         out += [_ellipse(276,119,20,17,"#FFF9FD","#D9BDD9",2),
