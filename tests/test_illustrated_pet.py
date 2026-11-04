@@ -12,7 +12,7 @@ def test_all_illustration_files_present():
     for animal in animals:
         path = ROOT / "assets" / "illustrations" / f"{animal}.png"
         assert path.exists(), str(path)
-        assert path.read_bytes().startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+        assert path.read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a"))
 
 
 def test_no_legacy_pet_layers_in_illustration_mode():
