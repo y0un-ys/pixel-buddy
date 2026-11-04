@@ -4,7 +4,7 @@
 
 ## Current version
 
-**v0.4.7 — visible 4FPS paw/head motion and repaired floppy dog ear**
+**v0.4.8 — alternated typing contacts, linear mouse, and cinema-style watching**
 
 The complete source, legacy 25 animation sprite sheets, five new illustration PNGs, tests and build scripts are committed to `dev`. The preview on GitHub Actions uses the real Qt BuddyScene.
 
@@ -43,3 +43,10 @@ When a milestone is stable, open a PR from `dev` into `main`.
 - `tests/test_character_animation.py` verifies movement covers thousands of source pixels per action.
 - `tools/preview_illustrated_pet.py` captures adjacent frames with the actual Qt widget.
 - Native Apple Silicon and Intel Mac builds still need hands-on verification.
+
+## v0.4.8 animation checks
+
+- Render snapshots with `python tools/preview_illustrated_pet.py`; the CI uploads `activity_states.png` and per-mode snapshots.
+- The native gesture overlay is synchronized to 250ms animation ticks.
+- The base pose is intentionally held still during typing and mouse movements, to avoid the previous grindstone-like motion.
+- Watching temporarily shows a desktop monitor only in the scene; equipped computer metadata is not modified.
