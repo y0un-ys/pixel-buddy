@@ -33,6 +33,7 @@ class BuddyScene(QWidget):
         self.frame = 0
         self._sprites = {}
         self._illustrations = {}
+        self._animation_atlases = {}
         self.preview_equipped = None  # Temporary look, never persisted
         self.reaction_event = ''
         self.room_view = False
@@ -50,6 +51,7 @@ class BuddyScene(QWidget):
         from PySide6.QtSvg import QSvgRenderer
         from .cozy_scene import scene_svg, scene_illustration_layers
         from .activity_effects import overlay_svg
+        from .character_animation import atlas_path, source_rect, FRAME_COUNT, FRAME_WIDTH, FRAME_HEIGHT, MODE_ORDER
 
         equipment = self.preview_equipped if self.preview_equipped is not None else self.store.equipped
         kwargs = dict(
@@ -70,6 +72,15 @@ class BuddyScene(QWidget):
             self._illustrations[species] = QPixmap(
                 str(asset_root / 'assets' / 'illustrations' / f'{species}.png'))
         illustration = self._illustrations[species]
+        if species not in self._animation_atlases:
+            self._animation_atlases[species] = QPixmap(
+                str(atlas_path(asset_root, species)))
+        animation_atlas = self._animation_atlases[species]
+        has_animation = (
+            not animation_atlas.isNull()
+            and animation_atlas.width() == FRAME_WIDTH * FRAME_COUNT
+            and animation_atlas.height() == FRAME_HEIGHT * len(MODE_ORDER)
+        )
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
@@ -100,11 +111,23 @@ class BuddyScene(QWidget):
                 bob = (0, 1, 2, 1)[(tick // 2) % 4]
             else:
                 bob = (0, 0, 1, 0)[(tick // 3) % 4]
-            p.drawPixmap(
-                QRectF(center_x - width / 2, 89 + bob, width, height),
-                illustration,
-                QRectF(0, 0, illustration.width(), illustration.height()),
-            )
+            if has_animation:
+                # Actual character frames are generated from the approved art.
+                x, y, cell_w, cell_h = source_rect(self.mode, self.frame)
+                # Source cells have transparent margins, so the pet occupies
+                # the same visual area as the original seated portrait.
+                width = height * FRAME_WIDTH / FRAME_HEIGHT
+                p.drawPixmap(
+                    QRectF(center_x - width / 2, 89, width, height),
+                    animation_atlas, QRectF(x, y, cell_w, cell_h),
+                )
+            else:
+                # Missing atlases are harmless in older source checkouts.
+                p.drawPixmap(
+                    QRectF(center_x - width / 2, 89 + bob, width, height),
+                    illustration,
+                    QRectF(0, 0, illustration.width(), illustration.height()),
+                )
             QSvgRenderer(QByteArray(foreground.encode('utf-8'))).render(
                 p, QRectF(0, 0, 480, 288))
             effects = overlay_svg(self.mode, tick, kwargs['pc'])
