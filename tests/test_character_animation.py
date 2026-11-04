@@ -34,10 +34,10 @@ def test_source_frame_order_cycles_and_modes_do_not_overlap():
     for row, mode in enumerate(MODE_ORDER):
         assert source_rect(mode, 0) == (0, row * FRAME_HEIGHT,
                                         FRAME_WIDTH, FRAME_HEIGHT)
-        assert source_rect(mode, 2)[0] == FRAME_WIDTH
-        assert source_rect(mode, 4)[0] == FRAME_WIDTH * 2
-        assert source_rect(mode, 6)[0] == FRAME_WIDTH * 3
-        assert source_rect(mode, 8) == source_rect(mode, 0)
+        assert source_rect(mode, 1)[0] == FRAME_WIDTH
+        assert source_rect(mode, 2)[0] == FRAME_WIDTH * 2
+        assert source_rect(mode, 3)[0] == FRAME_WIDTH * 3
+        assert source_rect(mode, 4) == source_rect(mode, 0)
     assert source_rect("invalid", 0) == source_rect("idle", 0)
 
 
