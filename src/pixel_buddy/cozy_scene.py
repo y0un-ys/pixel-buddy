@@ -47,12 +47,15 @@ def scene_svg(species="cat", mode="typing", pc="laptop", prop="", desk="", outfi
         out += [_rect(8,5,464,270,20,"#FFF6EE","#E9D7E6",2),
                 _rect(18,15,78,75,8,"#D7E7EF","#D7C4DC",3),
                 _rect(24,21,66,63,6,"#EBF8FF","#FFFFFF",1)]
+    out += ['<!--PET-CHAIR-START-->']
     out += [_rect(78,141,83,106,25,"url(#chair)","#75648D",4),
             _ellipse(119,227,48,13,"#9A83B2","#76638E",3),
             _path("M102 232 Q110 252 106 258 L123 258 Q127 247 125 231Z","#88739D","#76638E",3)]
+    out += ['<!--PET-CHAIR-END-->']
     # Table legs: always beneath the tabletop and its objects.
     out += [_rect(168,228,16,32,4,"#C4937E","#9B737E",3),
             _rect(423,228,16,32,4,"#C4937E","#9B737E",3)]
+    out += ['<!--PET-BODY-START-->']
     # Tail behind body, expressive but never detached.
     if species == "fox":
         out += [_path("M143 211 Q109 184 90 207 Q87 232 125 237 Q141 234 150 225Z",fur,EDGE,3),
@@ -127,6 +130,7 @@ def scene_svg(species="cat", mode="typing", pc="laptop", prop="", desk="", outfi
     elif hat == "bunny_ears" and species != "rabbit":
         out += [_ellipse(184,98,9,27,"#FFF0F4",EDGE,2),
                 _ellipse(204,97,9,27,"#FFF0F4",EDGE,2)]
+    out += ['<!--PET-BODY-END-->', '<!--SCENE-FOREGROUND-->']
     # Desk: believable overlap across belly, with paws on TOP afterward.
     out += [_rect(148,223,313,15,8,"url(#wood)","#9B7183",3.2),
             _path("M152 230 L457 230","none","#FFF1DB",2)]
@@ -175,6 +179,7 @@ def scene_svg(species="cat", mode="typing", pc="laptop", prop="", desk="", outfi
                 _ellipse(453,202,6,7,"#D9AF91",EDGE,2),
                 _ellipse(439,210,2,2,"#55465F","none",0),
                 _ellipse(448,210,2,2,"#55465F","none",0)]
+    out += ['<!--PET-PAWS-START-->']
     # Forepaws are continuous with arms, and their ends always meet the desk.
     shift = wobble * 2 if mode in ("typing","mouse","gaming") else 0
     out += [_path("M212 197 Q225 207 242 217 L252 220 Q259 223 259 216 Q256 210 245 210 Q236 196 226 191Z",fur,EDGE,3)]
@@ -200,6 +205,7 @@ def scene_svg(species="cat", mode="typing", pc="laptop", prop="", desk="", outfi
     else:
         out += [_ellipse(265,217,13,8,cream,EDGE,2),
                 _ellipse(286,219,11,7,cream,EDGE,2)]
+    out += ['<!--PET-PAWS-END-->']
     if mode == "idle":
         out += ['<text x="260" y="132" font-size="25" font-family="sans-serif" fill="#B39BC8">z</text>']
     if reaction:
@@ -208,3 +214,31 @@ def scene_svg(species="cat", mode="typing", pc="laptop", prop="", desk="", outfi
                 f'<text x="267" y="126" font-size="19" fill="#E89CB9" font-family="sans-serif">{escape(mark)}</text>']
     out += ["</svg>"]
     return "".join(out)
+
+
+def scene_illustration_layers(**kwargs):
+    """Return (background, foreground) SVGs for the illustrated companion.
+
+    Chair, body and legacy SVG paws are suppressed together; the PNG character
+    includes a chair and hands. The desk and equipment render in front.
+    """
+    import re
+
+    markup = scene_svg(**kwargs)
+    for name in ("CHAIR", "BODY", "PAWS"):
+        markup, removed = re.subn(
+            r"<!--PET-" + name + r"-START-->.*?<!--PET-" + name + r"-END-->",
+            "",
+            markup,
+            count=1,
+            flags=re.DOTALL,
+        )
+        if removed != 1:
+            raise ValueError("Missing scene illustration layer: " + name)
+
+    background, foreground = markup.split("<!--SCENE-FOREGROUND-->", 1)
+    header = background[:background.index(">") + 1]
+    defs = re.search(r"<defs>.*?</defs>", background, flags=re.DOTALL)
+    if defs is None:
+        raise ValueError("Scene SVG gradient definitions missing")
+    return background + "</svg>", header + defs.group(0) + foreground
