@@ -49,6 +49,7 @@ class BuddyScene(QWidget):
         from PySide6.QtCore import QByteArray
         from PySide6.QtSvg import QSvgRenderer
         from .cozy_scene import scene_svg, scene_illustration_layers
+        from .activity_effects import overlay_svg
 
         equipment = self.preview_equipped if self.preview_equipped is not None else self.store.equipped
         kwargs = dict(
@@ -88,13 +89,26 @@ class BuddyScene(QWidget):
             height = 168
             width = height * illustration.width() / illustration.height()
             center_x = 202
-            bob = (0, 1, 0, -1)[animation_frame(self.frame)]
+            tick = self.frame // 2
+            if self.mode == 'typing':
+                bob = (0, -2, 0, -1)[tick % 4]
+            elif self.mode == 'gaming':
+                bob = (0, -2, 1, -1)[tick % 4]
+            elif self.mode == 'mouse':
+                bob = (0, 0, 1, 0)[tick % 4]
+            elif self.mode == 'sleep':
+                bob = (0, 1, 2, 1)[(tick // 2) % 4]
+            else:
+                bob = (0, 0, 1, 0)[(tick // 3) % 4]
             p.drawPixmap(
                 QRectF(center_x - width / 2, 89 + bob, width, height),
                 illustration,
                 QRectF(0, 0, illustration.width(), illustration.height()),
             )
             QSvgRenderer(QByteArray(foreground.encode('utf-8'))).render(
+                p, QRectF(0, 0, 480, 288))
+            effects = overlay_svg(self.mode, tick, kwargs['pc'])
+            QSvgRenderer(QByteArray(effects.encode('utf-8'))).render(
                 p, QRectF(0, 0, 480, 288))
         p.end()
 
