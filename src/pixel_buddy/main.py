@@ -32,6 +32,7 @@ class BuddyScene(QWidget):
         self.mode = 'typing'
         self.frame = 0
         self._sprites = {}
+        self._illustrations = {}
         self.preview_equipped = None  # Temporary look, never persisted
         self.reaction_event = ''
         self.room_view = False
@@ -39,13 +40,18 @@ class BuddyScene(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
     def paintEvent(self, _event):
-        # A full integrated side-view illustration; no detached legacy hands.
+        """Render one coherent seated pet with desk equipment in front.
+
+        Shop previews and the main desktop companion use this same widget.
+        The character sheet includes its own chair/paws, so legacy SVG
+        character layers must never be drawn at the same time.
+        """
         from PySide6.QtCore import QByteArray
         from PySide6.QtSvg import QSvgRenderer
-        from .cozy_scene import scene_svg
+        from .cozy_scene import scene_svg, scene_illustration_layers
 
         equipment = self.preview_equipped if self.preview_equipped is not None else self.store.equipped
-        markup = scene_svg(
+        kwargs = dict(
             species=self.store.animal or 'cat',
             mode=self.mode,
             pc=equipment.get('컴퓨터', 'laptop'),
@@ -57,10 +63,38 @@ class BuddyScene(QWidget):
             room=self.room_view,
             reaction=self.reaction_event,
         )
+        species = kwargs['species']
+        asset_root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[2]))
+        if species not in self._illustrations:
+            self._illustrations[species] = QPixmap(
+                str(asset_root / 'assets' / 'illustrations' / f'{species}.png'))
+        illustration = self._illustrations[species]
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        renderer = QSvgRenderer(QByteArray(markup.encode('utf-8')))
-        renderer.render(p, QRectF(0, 0, self.width(), self.height()))
+
+        if illustration.isNull():
+            # Safe for older source checkouts that do not have the new PNGs.
+            scene = scene_svg(**kwargs)
+            QSvgRenderer(QByteArray(scene.encode('utf-8'))).render(
+                p, QRectF(0, 0, self.width(), self.height()))
+        else:
+            background, foreground = scene_illustration_layers(**kwargs)
+            p.scale(self.width() / 480.0, self.height() / 288.0)
+            QSvgRenderer(QByteArray(background.encode('utf-8'))).render(
+                p, QRectF(0, 0, 480, 288))
+
+            # Keep the seated portrait proportions consistent for all animals.
+            height = 168
+            width = height * illustration.width() / illustration.height()
+            center_x = 190
+            bob = (0, 1, 0, -1)[animation_frame(self.frame)]
+            p.drawPixmap(
+                QRectF(center_x - width / 2, 76 + bob, width, height),
+                illustration,
+                QRectF(0, 0, illustration.width(), illustration.height()),
+            )
+            QSvgRenderer(QByteArray(foreground.encode('utf-8'))).render(
+                p, QRectF(0, 0, 480, 288))
         p.end()
 
     def mousePressEvent(self, event):
