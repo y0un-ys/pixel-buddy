@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from pixel_buddy.activity import choose_activity, presentation_mode
-from pixel_buddy.activity_effects import overlay_svg, MODES
+from pixel_buddy.activity_effects import overlay_svg, display_computer, MODES
 from pixel_buddy.cozy_scene import scene_svg, scene_illustration_layers
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -44,7 +44,7 @@ def test_idle_has_no_sleep_indicator():
 
 
 def test_gaming_overlay_not_shown_in_other_modes():
-    controller = 'x="267" y="216" width="32" height="12"'
+    controller = 'x="271" y="214" width="45" height="15"'
     assert controller in overlay_svg("gaming")
     for mode in ("typing", "mouse", "watching", "idle", "sleep"):
         assert controller not in overlay_svg(mode)
@@ -63,4 +63,34 @@ def test_state_is_visible_in_settings_and_sleep_stats_do_not_overflow():
     assert "self.activity_status.setText(" in code
     assert "self.owner.detector.diagnostic()" in code
     assert "stored_mode = 'idle' if self.scene.mode == 'sleep'" in code
-    assert "overlay_svg(self.mode, tick, kwargs['pc'])" in code
+    assert "overlay_svg(self.mode, self.frame, kwargs['pc'], species)" in code
+
+
+def test_keyboard_is_visible_and_paws_alternate_contacts():
+    frames = [overlay_svg("typing", n, "laptop", "cat") for n in range(4)]
+    for output in frames:
+        assert 'x="245" y="218" width="100" height="17"' in output
+        assert 'M227 203' in output
+        ET.fromstring(output)
+    assert 'cy="220"' in frames[0]
+    assert 'cy="220"' in frames[2]
+    assert frames[0] != frames[2]
+
+
+def test_mouse_moves_linearly_with_single_paw():
+    frames = [overlay_svg("mouse", n) for n in range(4)]
+    assert 'cx="310"' in frames[0]
+    assert 'cx="315"' in frames[1]
+    assert 'cx="320"' in frames[2]
+    assert 'cx="315"' in frames[3]
+    assert all('cy="220"' in output for output in frames)
+
+
+def test_cinema_replaces_laptop_only_when_watching():
+    assert display_computer("laptop", "watching") == "desktop"
+    assert display_computer("laptop", "typing") == "laptop"
+    assert display_computer("dual", "watching") == "dual"
+    watching = overlay_svg("watching", 0, "desktop")
+    assert 'width="57" height="42"' in watching
+    assert 'x="270" y="222"' not in watching
+    assert 'l-5 -22 h29' in watching
