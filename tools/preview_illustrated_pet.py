@@ -52,6 +52,29 @@ def main():
         app.processEvents()
         assert scene.grab().save(str(destination / "cat_shop_preview.png"))
         scene.close()
+
+        # Capture the *actual* rendered state for each activity at two frames.
+        # This catches regressions where all states appear asleep or identical.
+        modes = ("typing", "mouse", "watching", "gaming", "idle", "sleep")
+        atlas_modes = QPixmap(480 * len(modes), 288)
+        atlas_modes.fill(QColor("#FFFFFF"))
+        painter = QPainter(atlas_modes)
+        for index, mode in enumerate(modes):
+            scene = BuddyScene(store)
+            scene.mode = mode
+            scene.frame = 8
+            scene.show()
+            app.processEvents()
+            image = scene.grab()
+            assert image.save(str(destination / f"cat_{mode}.png"))
+            painter.drawPixmap(index * 480, 0, image)
+            scene.frame = 12
+            scene.update()
+            app.processEvents()
+            assert scene.grab().save(str(destination / f"cat_{mode}_frame2.png"))
+            scene.close()
+        painter.end()
+        assert atlas_modes.save(str(destination / "activity_states.png"))
         store.close()
     print(f"Saved real BuddyScene previews to {destination}")
 
