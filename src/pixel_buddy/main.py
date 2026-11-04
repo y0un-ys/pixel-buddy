@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QApplication, QWidget, QDialog, QVBoxLayout, QHBo
 
 from .progression import xp_required
 from .store import GameStore, CATALOG, ITEMS, ANIMALS, preview_equipment
-from .activity import ActivityDetector
+from .activity import ActivityDetector, presentation_mode
 from .animation import animation_frame, pose_for
 
 # All management screens use a shared light palette. This is the first
@@ -22,14 +22,14 @@ from .theme import DEFAULT_THEME, make_stylesheet, THEMES, THEME_PRICES, get_the
 STYLE = make_stylesheet(DEFAULT_THEME)
 
 MODES = {'auto': '자동 감지', 'typing': '⌨ 타이핑', 'watching': '🍿 영상 보기',
-         'gaming': '🎮 게임', 'mouse': '🖱 마우스', 'idle': '💤 쉬기'}
+         'gaming': '🎮 게임', 'mouse': '🖱 마우스', 'idle': '🌿 쉬기', 'sleep': '💤 잠자기'}
 
 
 class BuddyScene(QWidget):
     def __init__(self, store, parent=None):
         super().__init__(parent)
         self.store = store
-        self.mode = 'typing'
+        self.mode = 'idle'
         self.frame = 0
         self._sprites = {}
         self._illustrations = {}
@@ -611,6 +611,10 @@ class SettingsDialog(BuddyDialog):
         selector.setCurrentIndex(list(MODES).index(self.owner.manual_mode))
         selector.currentIndexChanged.connect(lambda _: self.owner.set_mode(selector.currentData()))
         layout.addWidget(selector)
+        self.activity_status = QLabel()
+        self.activity_status.setWordWrap(True)
+        layout.addWidget(self.activity_status)
+        self.refresh_activity_status()
         layout.addWidget(QLabel('펫 크기'))
         sizes = QComboBox()
         for pct in (50, 60, 70, 75, 80, 90, 100, 110, 125):
@@ -650,6 +654,17 @@ class SettingsDialog(BuddyDialog):
         layout.addStretch()
         self.install_navigation(root_layout)
 
+
+    def refresh_activity_status(self):
+        """Show actual activity and listener health, not assumed permissions."""
+        mode = self.owner.scene.mode
+        label = MODES.get(mode, mode)
+        selected = self.owner.manual_mode
+        source = '자동' if selected == 'auto' else '수동'
+        self.activity_status.setText(
+            f'현재 상태: {label} ({source})\\n'
+            + self.owner.detector.diagnostic()
+        )
 
     def change_animal(self):
         animal = self.animal_selector.currentData()
@@ -820,10 +835,11 @@ class DesktopBuddy(QWidget):
         elapsed = min(2.0, now - self.last_tick)  # Avoid counting Windows sleep/suspend as playtime.
         self.last_tick = now
         levels, coins = self.store.growth.advance(elapsed)
-        self.store.activity_seconds[self.scene.mode] = self.store.activity_seconds.get(self.scene.mode, 0) + elapsed
+        stored_mode = 'idle' if self.scene.mode == 'sleep' else self.scene.mode
+        self.store.activity_seconds[stored_mode] = self.store.activity_seconds.get(stored_mode, 0) + elapsed
         if now >= self._next_event:
             unique = {'dog': 'happy', 'cat': 'sleep', 'bear': 'snack', 'fox': 'curious', 'rabbit': 'stretch'}
-            options = ['coffee','stretch','snack','curious','happy','sleep', unique.get(self.store.animal, 'happy')]
+            options = ['coffee','stretch','snack','curious','happy', unique.get(self.store.animal, 'happy')]
             self.scene.reaction_event = random.choice(options)
             self._event_timeout = now + 3
             self._next_event = now + random.uniform(60, 160)
@@ -835,10 +851,17 @@ class DesktopBuddy(QWidget):
         achievements = self.store.award_achievements()
         self.scene.frame += 1
         if self.scene.frame % 4 == 0:
-            new_mode = self.detector.detect() if self.manual_mode == 'auto' else self.manual_mode
+            if self.manual_mode == 'auto':
+                detected = self.detector.detect()
+                new_mode = presentation_mode(detected, self.detector.inactive_seconds())
+            else:
+                new_mode = self.manual_mode
             if new_mode != self.scene.mode:
                 self.scene.mode = new_mode
             self.scene.update()
+            settings = self.pages.get('settings')
+            if settings is not None and settings.isVisible():
+                settings.refresh_activity_status()
         if now - self.save_tick >= 15 or levels:
             self.store.save()
             self.save_tick = now
@@ -913,7 +936,13 @@ class DesktopBuddy(QWidget):
         self.manual_mode = key
         if key != 'auto':
             self.scene.mode = key
-            self.scene.update()
+        else:
+            detected = self.detector.detect()
+            self.scene.mode = presentation_mode(detected, self.detector.inactive_seconds())
+        self.scene.update()
+        settings = self.pages.get('settings')
+        if settings is not None:
+            settings.refresh_activity_status()
 
     def set_always_on_top(self, enabled):
         self.always_on_top = bool(enabled)
