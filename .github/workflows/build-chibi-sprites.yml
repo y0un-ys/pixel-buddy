@@ -1,0 +1,56 @@
+name: Build chibi animation sprites
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'tools/generate_chibi_animations.py'
+      - 'assets/illustration_sources/dog_original.png'
+      - '.github/workflows/build-chibi-sprites.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install sprite generator
+        run: python -m pip install --upgrade Pillow numpy scipy
+      - name: Render frame atlases and correct dog portrait
+        run: python tools/generate_chibi_animations.py
+      - name: Check frame files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageChops
+          for animal in ('cat','dog','bear','fox','rabbit'):
+              path=Path('assets/animations')/(animal+'.png')
+              with Image.open(path) as im:
+                  assert im.size==(1200,1920)
+                  for row in range(6):
+                      a=im.crop((0,row*320,300,row*320+320)).convert('RGBA')
+                      b=im.crop((300,row*320,600,row*320+320)).convert('RGBA')
+                      assert ImageChops.difference(a,b).getbbox(), (animal,row)
+          dog=Image.open('assets/illustrations/dog.png')
+          assert dog.size==(300,320)
+          print('5 animals x 6 modes x 4 frames validated')
+          PY
+      - name: Commit generated art to dev
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/animations/*.png assets/illustrations/dog.png
+          if git diff --cached --quiet; then
+            echo "No asset changes"
+            exit 0
+          fi
+          git commit -m "assets: apply stronger character poses and restore dog floppy ears"
+          git push origin HEAD:dev
