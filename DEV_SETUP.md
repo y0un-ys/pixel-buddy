@@ -4,9 +4,9 @@
 
 ## Current version
 
-**v0.4.1 — activity animation improvements**
+**v0.4.4 — approved character PNGs integrated into BuddyScene**
 
-The complete source, 25 animal sprite sheets, tests and build scripts are committed to `dev`.
+The complete source, legacy 25 animation sprite sheets, five new illustration PNGs, tests and build scripts are committed to `dev`. The preview on GitHub Actions uses the real Qt BuddyScene.
 
 ## Quick checks
 
