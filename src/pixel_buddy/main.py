@@ -39,178 +39,29 @@ class BuddyScene(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
     def paintEvent(self, _event):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing, False)
-        p.scale(self.width() / 160, self.height() / 96)
-        def rect(x, y, w, h, color):
-            p.fillRect(QRectF(x, y, w, h), QColor(color))
-        def text(x, y, text, color='#FFFFFF', size=5):
-            p.setPen(QColor(color))
-            f = QFont('Consolas', size)
-            f.setPixelSize(size)
-            f.setBold(True)
-            p.setFont(f)
-            p.drawText(x, y, text)
-        step = animation_frame(self.frame)
-        t = step % 2
-        pose = pose_for(self.mode, step)
-        bounce = -1 if self.mode in ('typing', 'gaming') and t else 0
-        # Soft floating island; no opaque window background.
-        rect(6, 81, 147, 10, '#4E3E5C')
-        rect(10, 79, 138, 4, '#6A5571')
-        # Avoid the former 'LV.1 TYPING' text that looked like the pet name.
-        # Level and XP are shown in the management home screen instead.
-        if self.room_view:
-            rect(5, 12, 149, 69, '#D9C1AA')
-            rect(5, 72, 149, 9, '#A9857E')
-            rect(12, 16, 26, 23, '#9BB6CB')
-            rect(16, 19, 18, 16, '#DDE9FA')
-            rect(136, 23, 8, 28, '#66866C')
-            rect(132, 24, 16, 9, '#80A886')
-            rect(13, 66, 19, 11, '#D1B6D7')
-        # Desk and chair.
-        rect(16, 57, 26, 24, '#74607B')
-        rect(13, 61, 7, 22, '#8A7192')
-        rect(31, 70, 17, 7, '#604B6E')
-        equipment = self.preview_equipped if self.preview_equipped is not None else self.store.equipped
-        desk = equipment.get('책상', '')
-        desk_top = {'': '#C99581', 'oak_desk': '#B88758', 'pink_desk': '#EBAFC8', 'gaming_desk': '#546180'}.get(desk, '#C99581')
-        # Extended desk surface holds all props, including those on the right.
-        rect(42, 65, 110, 6, desk_top)
-        rect(44, 71, 6, 13, '#88647A')
-        rect(141, 71, 6, 13, '#88647A')
-        rect(50, 63, 100, 2, '#E8C9AF')
-        prop = equipment.get('소품', '')
-        # Decor sits on the desk, outside the computer's monitor area.
-        if prop == 'plant':
-            rect(135, 57, 10, 8, '#D79C7D')
-            rect(134, 56, 12, 3, '#B77970')
-            rect(139, 48, 3, 10, '#6B9775')
-            rect(133, 49, 8, 6, '#85BD86')
-            rect(141, 46, 7, 7, '#7BAC7B')
-        elif prop == 'lamp':
-            rect(136, 63, 12, 2, '#9484A9')
-            rect(141, 48, 3, 15, '#A89BBB')
-            rect(135, 43, 13, 7, '#D5B7D9')
-            rect(138, 50, 8, 2, '#FFE8B6')
-        elif prop == 'plushie':
-            rect(135, 56, 12, 9, '#BE9A7C')
-            rect(135, 53, 4, 5, '#BE9A7C')
-            rect(143, 53, 4, 5, '#BE9A7C')
-            rect(139, 60, 4, 2, '#FFF0D9')
-        # Display upgrade visuals.
-        pc = equipment['컴퓨터']
-        monitors = [(94, 31, 31, 24)] if pc != 'laptop' else [(103, 43, 26, 18)]
-        if pc == 'dual': monitors = [(75, 34, 26, 22), (104, 31, 29, 25)]
-        for mx, my, mw, mh in monitors:
-            rect(mx - 2, my - 2, mw + 4, mh + 4, '#B9A5B8')
-            rect(mx, my, mw, mh, '#352E53')
-            rect(mx+2, my+3, mw-4, 3, '#766AC0')
-            if self.mode == 'watching':
-                rect(mx+4, my+8, mw-8, 10, '#F8AF8F')
-                rect(mx+6+2*t, my+10, 6, 5, '#FFE3B4')
-                rect(mx+4, my+mh-4, mw-8, 2, '#62577B')
-                rect(mx+4, my+mh-4, min(mw-8, 4+pose.video_progress), 2, '#F6DA9A')
-            elif self.mode == 'gaming':
-                rect(mx+4+step*2, my+mh-10-pose.game_jump, 6, 6, '#A4DDAC')
-                rect(mx+13, my+mh-5, 9, 3, '#EDC16C')
-                rect(mx+5, my+6, 8, 3, '#AC8AE7')
-            else:
-                if self.mode == 'mouse':
-                    # A moving high-contrast arrow and a two-frame click flash.
-                    rect(mx+8+pose.cursor_x, my+10+pose.cursor_y, 2, 6, '#FFF2C8')
-                    rect(mx+9+pose.cursor_x, my+12+pose.cursor_y, 5, 2, '#FFF2C8')
-                    if pose.mouse_click:
-                        rect(mx+5+pose.cursor_x, my+7+pose.cursor_y, 10, 1, '#F4C8DB')
-                        rect(mx+5+pose.cursor_x, my+17+pose.cursor_y, 10, 1, '#F4C8DB')
-                for j, width in enumerate((12, 17, 11)):
-                    rect(mx+5, my+8+j*4, width, 2, ['#9BDDB9','#D8A1D9','#E9D48D'][j])
-            if pc != 'laptop':
-                rect(mx+mw//2-2, my+mh+2, 4, 8, '#AD9CAF')
-                rect(mx+mw//2-7, my+mh+9, 14, 2, '#AD9CAF')
-        if pc == 'laptop':
-            rect(102, 62, 28, 3, '#D3B7CE')
-        else:
-            rect(76, 61, 22, 2, '#B89BBF')
-            if pc == 'dual':
-                rect(70, 74, 11, 9, '#5E4A77')
-                rect(72, 76, 7, 3, '#AE8DDC')
-        # A soft, anti-aliased chibi drawing replaces the old enlarged pixel head.
-        # Wardrobe, desk, and action layers still work across all species.
-        species = self.store.animal or 'cat'
-        from .character_art import COLORS, draw_cozy_pet
-        fur = COLORS.get(species, COLORS['cat'])[0]
-        y = bounce
-        shirt = {'hoodie':'#99A8D9','pajamas':'#D7A9D7','suit':'#5E709D'}[equipment['의상']]
-        draw_cozy_pet(p, species, shirt, equipment['의상'], y, step)
-        # Equipment is shared across all animals.
-        hat = equipment['머리띠']
-        if hat == 'cat_ears':
-            rect(26,13+y,11,14,'#8B6B87');rect(54,13+y,11,14,'#8B6B87')
-            rect(29,16+y,5,7,'#EFAABB');rect(57,16+y,5,7,'#EFAABB')
-        elif hat == 'bunny_ears':
-            rect(32,4+y,8,23,'#F4E8F0');rect(52,4+y,8,23,'#F4E8F0')
-            rect(35,8+y,3,15,'#EBA7BF');rect(55,8+y,3,15,'#EBA7BF')
-        elif hat == 'ribbon':
-            rect(54,20+y,17,7,'#E88EAD');rect(61,17+y,5,13,'#F5BBC8')
-        # Readable hand-and-prop silhouettes at 160x96 logical resolution.
-        # These move independently from the oversized face sprite sheet.
-        if self.mode == 'watching':
-            rect(29,42+y,13,7,'#E75C87'); rect(50,42+y,13,7,'#7BC8E4')
-            rect(42,44+y,8,2,'#66536A')
-            rect(66,57+y,15,15,'#D96475')  # Popcorn carton
-            rect(68,56+y,11,3,'#FFF1D4')
-            for dx, dy in ((0,0),(5,-2),(10,0)):
-                rect(68+dx,53+y+dy,4,4,'#FFE6A1')
-            rect(62,62+y+pose.left_paw_y,10,5,fur)
-            rect(76,51+y+pose.popcorn_y,6,5,fur)
-            if step == 2:
-                rect(73,47+y,3,3,'#FFE6A1')  # Snack in midair
-        elif self.mode == 'gaming':
-            # Controller is gripped on *both* sides and bobs with the paws.
-            rect(61,61+y+pose.left_paw_y,12,7,fur)
-            rect(79,61+y+pose.right_paw_y,12,7,fur)
-            rect(67,61+y,20,10,'#554761')
-            rect(70,65+y,7,2,'#B5D6EC')
-            rect(72,62+y,2,8,'#B5D6EC')
-            rect(81,64+y+int(step==1),3,3,'#F0B3BF')
-            rect(85,67+y,2,2,'#E8D58C')
-        elif self.mode == 'mouse':
-            rect(37,65+y+pose.left_paw_y,13,5,fur)
-            rect(84+pose.mouse_x,63,11,6,'#BAB1CF')
-            rect(88+pose.mouse_x,63,2,3,'#8A77A2')
-            rect(64+pose.mouse_x,61+y+pose.right_paw_y,17,6,fur)
-            if pose.mouse_click:
-                rect(89+pose.mouse_x,59,2,3,'#E4A8C3')
-                rect(85+pose.mouse_x,59,2,2,'#E4A8C3')
-        elif self.mode == 'idle':
-            rect(62,65+y+pose.breathing,16,6,fur)
-            rect(38,67+y,13,5,fur)
-            rect(22,55+y+pose.breathing,40,2,'#F6DFE9')
-            if step in (1,2):
-                text(75,37-step*2,'z','#F9E4B8',7)
-        else:
-            # Clearly a keyboard, not a controller-like cross.
-            rect(77, 63, 27, 5, '#9382A5')
-            rect(79, 64, 23, 3, '#E2CFE5')
-            for key in range(10):
-                rect(80+key*2, 65, 1, 1,
-                     '#EEA6BD' if key == pose.key_highlight else '#897DA6')
-            rect(62, 59+y+pose.right_paw_y, 13, 7, fur)
-            rect(39, 62+y+pose.left_paw_y, 13, 6, fur)
-        # Short-lived silent life events (not permanent action text).
-        if self.reaction_event:
-            glyphs = {'coffee':'☕','stretch':'!','snack':'*','curious':'?','happy':'♥','sleep':'z'}
-            rect(75, 15, 18, 12, '#FAE4DB')
-            text(81, 24, glyphs.get(self.reaction_event, '*'), '#684C69', 8)
-        # Time-of-day atmosphere: warm lamp or morning sun.
-        hour = time.localtime().tm_hour
-        if hour >= 20 or hour < 6:
-            rect(137, 10, 9, 11, '#E5C4A4'); rect(140, 13, 3, 5, '#FCE6AA')
-        elif 6 <= hour < 11:
-            rect(140, 9, 8, 8, '#FFD58E')
-        p.end()
+        # A full integrated side-view illustration; no detached legacy hands.
+        from PySide6.QtCore import QByteArray
+        from PySide6.QtSvg import QSvgRenderer
+        from .cozy_scene import scene_svg
 
+        equipment = self.preview_equipped if self.preview_equipped is not None else self.store.equipped
+        markup = scene_svg(
+            species=self.store.animal or 'cat',
+            mode=self.mode,
+            pc=equipment.get('컴퓨터', 'laptop'),
+            prop=equipment.get('소품', ''),
+            desk=equipment.get('책상', ''),
+            outfit=equipment.get('의상', 'hoodie'),
+            hat=equipment.get('머리띠', ''),
+            frame=animation_frame(self.frame),
+            room=self.room_view,
+            reaction=self.reaction_event,
+        )
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        renderer = QSvgRenderer(QByteArray(markup.encode('utf-8')))
+        renderer.render(p, QRectF(0, 0, self.width(), self.height()))
+        p.end()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
