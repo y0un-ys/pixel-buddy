@@ -898,10 +898,13 @@ class DesktopBuddy(QWidget):
                 new_mode = self.manual_mode
             if new_mode != self.scene.mode:
                 self.scene.mode = new_mode
-            self.scene.update()
             settings = self.pages.get('settings')
             if settings is not None and settings.isVisible():
                 settings.refresh_activity_status()
+        # Repaint at EVERY 250ms timer tick. Previously repainting only on
+        # frame % 4 == 0 displayed source_rect(..., frame % 4) == 0 forever.
+        # Keep activity detection throttled to once a second.
+        self.scene.update()
         if now - self.save_tick >= 15 or levels:
             self.store.save()
             self.save_tick = now
