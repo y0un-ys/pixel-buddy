@@ -64,22 +64,58 @@ def _mac_foreground():
         return '', ''
 
 
+def mac_input_monitoring_granted():
+    """Best-effort TCC status; None if the API is unavailable.
+
+    This check does not request permission or read any keystroke.
+    """
+    if __import__('sys').platform != 'darwin':
+        return None
+    try:
+        import Quartz
+        fn = getattr(Quartz, 'CGPreflightListenEventAccess', None)
+        return bool(fn()) if fn is not None else None
+    except Exception:
+        return None
+
+
+def choose_activity(last_key, last_mouse, now, keyboard_usable=True):
+    """Pure classifier: timestamps only, never key contents."""
+    if keyboard_usable and 0 <= now - last_key < 4.0:
+        return 'typing'
+    if 0 <= now - max(last_key, last_mouse) > 90:
+        return 'idle'
+    if 0 <= now - last_mouse < 6.0:
+        return 'mouse'
+    return 'idle'
+
+
 class ActivityDetector:
     def __init__(self):
-        self.last_key = 0.0
+        self.last_key = -10000.0
+        self.last_mouse = -10000.0
         self.last_input = time.monotonic()
         self.listener = None
         self.mouse_listener = None
         self.keyboard_available = False
+        self.mouse_available = False
+        self.mac_permission = mac_input_monitoring_granted()
+
+        # Failure of one listener must not prevent the other one running.
         try:
-            from pynput import keyboard, mouse
+            from pynput import keyboard
             self.listener = keyboard.Listener(on_press=self._on_key)
-            self.mouse_listener = mouse.Listener(on_click=self._on_click)
             self.listener.start()
-            self.mouse_listener.start()
             self.keyboard_available = True
         except Exception:
-            self.stop()
+            self.listener = None
+        try:
+            from pynput import mouse
+            self.mouse_listener = mouse.Listener(on_click=self._on_click, on_move=self._on_move)
+            self.mouse_listener.start()
+            self.mouse_available = True
+        except Exception:
+            self.mouse_listener = None
 
     def _on_key(self, _key):
         now = time.monotonic()
@@ -87,24 +123,39 @@ class ActivityDetector:
         self.last_key = now
 
     def _on_click(self, *_args):
-        self.last_input = time.monotonic()
+        self._mark_mouse()
+
+    def _on_move(self, *_args):
+        self._mark_mouse()
+
+    def _mark_mouse(self):
+        now = time.monotonic()
+        self.last_input = now
+        self.last_mouse = now
 
     def detect(self):
         exe, title = foreground()
-        # Classify only the active window: opening Steam in the background is not gaming.
         if exe in GAMES or any(token in exe for token in ('stardew valley', 'minecraft', 'hades', 'steam game')):
             return 'gaming'
         if exe in BROWSERS and ('youtube' in title or 'netflix' in title or 'twitch' in title):
-            return 'watching'  # Heuristic: browser tab may be paused.
+            return 'watching'
         now = time.monotonic()
-        if self.keyboard_available:
-            if now - self.last_key < 3:
-                return 'typing'
-            if now - self.last_input > 90:
-                return 'idle'
-            return 'mouse'
-        # Without a global listener, fall back to the manual mode selector.
-        return 'idle'
+        # On macOS pynput may appear active even though TCC blocks key events.
+        # Never report mouse forever merely because the listener started.
+        keyboard_usable = self.keyboard_available and self.mac_permission is not False
+        return choose_activity(self.last_key, self.last_mouse, now, keyboard_usable)
+
+    def permission_hint(self):
+        if __import__('sys').platform != 'darwin':
+            return ''
+        if self.mac_permission is False:
+            return ('⌨ 자동 타이핑 감지 권한이 없어요. macOS 시스템 설정 → '
+                    '개인정보 보호 및 보안 → 입력 모니터링에서 PixelBuddy를 허용하고 앱을 재시작하세요.')
+        if not self.keyboard_available:
+            return ('⌨ 키보드 감지 시작에 실패했어요. 입력 모니터링 및 손쉬운 사용 권한을 '
+                    '확인한 후 앱을 재시작하세요.')
+        return ('자동 타이핑 감지가 안 되면 macOS 입력 모니터링에서 PixelBuddy를 허용하고 '
+                '앱을 재시작하세요. 입력 내용은 읽거나 저장하지 않습니다.')
 
     def stop(self):
         for listener in (self.listener, self.mouse_listener):
