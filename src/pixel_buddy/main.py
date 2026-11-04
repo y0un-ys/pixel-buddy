@@ -71,6 +71,7 @@ class BuddyScene(QWidget):
         illustration = self._illustrations[species]
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
 
         if illustration.isNull():
             # Safe for older source checkouts that do not have the new PNGs.
@@ -86,10 +87,10 @@ class BuddyScene(QWidget):
             # Keep the seated portrait proportions consistent for all animals.
             height = 168
             width = height * illustration.width() / illustration.height()
-            center_x = 190
+            center_x = 202
             bob = (0, 1, 0, -1)[animation_frame(self.frame)]
             p.drawPixmap(
-                QRectF(center_x - width / 2, 76 + bob, width, height),
+                QRectF(center_x - width / 2, 89 + bob, width, height),
                 illustration,
                 QRectF(0, 0, illustration.width(), illustration.height()),
             )
