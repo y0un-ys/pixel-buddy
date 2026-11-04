@@ -135,50 +135,14 @@ class BuddyScene(QWidget):
             if pc == 'dual':
                 rect(70, 74, 11, 9, '#5E4A77')
                 rect(72, 76, 7, 3, '#AE8DDC')
-        # Five selectable animal companions, all designed for the same equipment slots.
+        # A soft, anti-aliased chibi drawing replaces the old enlarged pixel head.
+        # Wardrobe, desk, and action layers still work across all species.
         species = self.store.animal or 'cat'
-        coats = {'dog':('#D9A77F','#F5D6B1'),'cat':('#BFC6D2','#F3DBDB'),
-                 'bear':('#B68B6C','#E5B995'),'fox':('#DF965D','#F9D6A5'),
-                 'rabbit':('#F1DFE8','#FFF1ED')}
-        fur, muzzle = coats[species]
+        from .character_art import COLORS, draw_cozy_pet
+        fur = COLORS.get(species, COLORS['cat'])[0]
         y = bounce
         shirt = {'hoodie':'#99A8D9','pajamas':'#D7A9D7','suit':'#5E709D'}[equipment['의상']]
-        # Tail and feet.
-        if species in ('dog','cat','fox'):
-            rect(61,60+y,14,6,fur)
-            rect(71,55+y,7,8,fur)
-            if species == 'fox': rect(75,55+y,4,8,'#F9E8D8')
-        rect(27,70+y,13,6,fur)
-        rect(51,70+y,13,6,fur)
-        # Outfit / torso.
-        rect(25,54+y,40,18,shirt)
-        rect(21,60+y,9,10,shirt)
-        rect(61,60+y,9,10,shirt)
-        if equipment['의상']=='suit':
-            rect(42,55+y,6,12,'#F5EBEB')
-            rect(44,57+y,2,8,'#DB929D')
-        elif equipment['의상']=='pajamas':
-            for sx in (34,44,54): rect(sx,62+y,3,3,'#F8E4AD')
-        else: rect(39,64+y,12,5,'#8995C3')
-        # Animated 64x56 original pixel sprite sheets. Kept independent of
-        # shirts and accessories, which remain wearable as separate layers.
-        from pathlib import Path
-        asset_root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[2])) / 'assets' / 'sprites'
-        mode = self.mode if self.mode in ('typing','mouse','watching','gaming','idle') else 'idle'
-        sprite_key = f'{species}_{mode}'
-        if sprite_key not in self._sprites:
-            self._sprites[sprite_key] = QPixmap(str(asset_root / f'{sprite_key}.png'))
-        sheet = self._sprites[sprite_key]
-        if not sheet.isNull():
-            frame_index = step
-            p.drawPixmap(QRectF(15, 6+y, 64, 56), sheet, QRectF(frame_index*64, 0, 64, 56))
-        else:
-            # Graceful fallback for source distributions missing artwork.
-            rect(22,27+y,46,32,fur)
-            rect(32,45+y,27,14,muzzle)
-            rect(32,40+y,6,8,'#413A4D')
-            rect(53,40+y,6,8,'#413A4D')
-            rect(44,49+y,5,4,'#8B626E')
+        draw_cozy_pet(p, species, shirt, equipment['의상'], y, step)
         # Equipment is shared across all animals.
         hat = equipment['머리띠']
         if hat == 'cat_ears':
@@ -793,6 +757,10 @@ class SettingsDialog(BuddyDialog):
                       '입력한 글자는 저장하지 않아요. 영상 재생·게임 승패는 정확히 감지하지 못할 수 있어요.')
         note.setWordWrap(True)
         layout.addWidget(note)
+        if sys.platform == 'darwin':
+            mac_hint = QLabel(self.owner.detector.permission_hint())
+            mac_hint.setWordWrap(True)
+            layout.addWidget(mac_hint)
         layout.addStretch()
         self.install_navigation(root_layout)
 
