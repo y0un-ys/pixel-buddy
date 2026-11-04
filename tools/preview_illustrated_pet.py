@@ -68,10 +68,14 @@ def main():
             image = scene.grab()
             assert image.save(str(destination / f"cat_{mode}.png"))
             painter.drawPixmap(index * 480, 0, image)
-            scene.frame = 10
+            scene.frame = 9
             scene.update()
             app.processEvents()
             assert scene.grab().save(str(destination / f"cat_{mode}_frame2.png"))
+            from PIL import Image, ImageChops
+            first_image = Image.open(destination / f"cat_{mode}.png").convert("RGBA")
+            second_image = Image.open(destination / f"cat_{mode}_frame2.png").convert("RGBA")
+            assert ImageChops.difference(first_image, second_image).getbbox(), mode
             scene.close()
         painter.end()
         assert atlas_modes.save(str(destination / "activity_states.png"))
