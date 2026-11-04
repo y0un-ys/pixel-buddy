@@ -21,11 +21,12 @@ def test_computer_previews_never_use_gaming_mode():
     assert "canvas.mode = 'typing' if info['category'] != '컴퓨터' else 'gaming'" not in MAIN
 
 
-def test_desk_and_prop_boundaries():
-    assert "rect(42, 65, 110, 6, desk_top)" in MAIN
-    assert "rect(135, 57, 10, 8" in MAIN
-    assert "rect(136, 63, 12, 2" in MAIN
-    assert "rect(135, 56, 12, 9" in MAIN
+def test_integrated_scene_replaces_detached_paws():
+    assert "from .cozy_scene import scene_svg" in MAIN
+    assert "renderer = QSvgRenderer(" in MAIN
+    assert "# Readable hand-and-prop silhouettes" not in MAIN
+    assert "sprite_key = f'{species}_{mode}'" not in MAIN
+
 
 
 def test_mac_topmost_settings_persist():
