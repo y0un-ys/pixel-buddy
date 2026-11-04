@@ -14,7 +14,7 @@ MODE_ORDER = ("typing", "mouse", "watching", "gaming", "idle", "sleep")
 def source_rect(mode, frame):
     """Return x, y, width and height for an atlas cell."""
     row = MODE_ORDER.index(mode) if mode in MODE_ORDER else MODE_ORDER.index("idle")
-    column = (max(0, int(frame)) // 2) % FRAME_COUNT
+    column = max(0, int(frame)) % FRAME_COUNT
     return (column * FRAME_WIDTH, row * FRAME_HEIGHT, FRAME_WIDTH, FRAME_HEIGHT)
 
 
