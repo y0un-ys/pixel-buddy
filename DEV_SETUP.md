@@ -1,15 +1,26 @@
 # Pixel Buddy — Development
 
-This branch (`dev`) is for work in progress. Merge into `main` only after testing.
+`dev` is the active development branch. `main` is for tested/stable releases only.
 
-Current working version: **v0.4.0 graphics prototype**.
+## Current version
 
-- Windows: `build_exe.bat`
-- macOS: `bash build_mac.command`
-- Tests: `PYTHONPATH=src python -m pytest -q`
+**v0.4.1 — activity animation improvements**
 
-The full source and PNG sprites are not uploaded by this initial bootstrap commit; add the project contents from the prepared source archive before building.
+The complete source, 25 animal sprite sheets, tests and build scripts are committed to `dev`.
 
-Do not commit `.venv/`, `dist/`, `build/`, or SQLite save files.
+## Quick checks
 
-The game uses the same assets on Windows and macOS. Native GUI validation remains necessary.
+```bash
+python -m pip install -e . pytest
+PYTHONPATH=src python -m pytest -q
+```
+
+Windows: `build_exe.bat` → `dist/PixelBuddy.exe`.
+
+macOS: `bash build_mac.command` → `dist/PixelBuddy.app`.
+
+The automated tests pass on Linux. Native Windows/macOS GUI and packaging still need testing on those operating systems.
+
+Avoid committing `.venv/`, `dist/`, `build/` and local save databases.
+
+When a milestone is stable, open a PR from `dev` into `main`.
