@@ -75,17 +75,29 @@ class BuddyScene(QWidget):
         equipment = self.preview_equipped if self.preview_equipped is not None else self.store.equipped
         desk = equipment.get('책상', '')
         desk_top = {'': '#C99581', 'oak_desk': '#B88758', 'pink_desk': '#EBAFC8', 'gaming_desk': '#546180'}.get(desk, '#C99581')
-        rect(42, 65, 94, 6, desk_top)
+        # Extended desk surface holds all props, including those on the right.
+        rect(42, 65, 110, 6, desk_top)
         rect(44, 71, 6, 13, '#88647A')
-        rect(127, 71, 6, 13, '#88647A')
-        rect(50, 62, 80, 3, desk_top)
+        rect(141, 71, 6, 13, '#88647A')
+        rect(50, 63, 100, 2, '#E8C9AF')
         prop = equipment.get('소품', '')
+        # Decor sits on the desk, outside the computer's monitor area.
         if prop == 'plant':
-            rect(136, 52, 9, 12, '#B87D68'); rect(136, 46, 9, 8, '#7BA775')
+            rect(135, 57, 10, 8, '#D79C7D')
+            rect(134, 56, 12, 3, '#B77970')
+            rect(139, 48, 3, 10, '#6B9775')
+            rect(133, 49, 8, 6, '#85BD86')
+            rect(141, 46, 7, 7, '#7BAC7B')
         elif prop == 'lamp':
-            rect(134, 45, 13, 8, '#FFDF99'); rect(139, 53, 3, 12, '#7B718C')
+            rect(136, 63, 12, 2, '#9484A9')
+            rect(141, 48, 3, 15, '#A89BBB')
+            rect(135, 43, 13, 7, '#D5B7D9')
+            rect(138, 50, 8, 2, '#FFE8B6')
         elif prop == 'plushie':
-            rect(135, 51, 11, 13, '#B99375'); rect(135, 47, 4, 5, '#B99375'); rect(143, 47, 4, 5, '#B99375')
+            rect(135, 56, 12, 9, '#BE9A7C')
+            rect(135, 53, 4, 5, '#BE9A7C')
+            rect(143, 53, 4, 5, '#BE9A7C')
+            rect(139, 60, 4, 2, '#FFF0D9')
         # Display upgrade visuals.
         pc = equipment['컴퓨터']
         monitors = [(94, 31, 31, 24)] if pc != 'laptop' else [(103, 43, 26, 18)]
@@ -214,14 +226,14 @@ class BuddyScene(QWidget):
             if step in (1,2):
                 text(75,37-step*2,'z','#F9E4B8',7)
         else:
-            rect(75,65,25,5,'#BEB4CB')  # Keyboard
-            for key in range(8):
-                rect(77+key*3,66+(key%2),2,1,
-                     '#F8DF9E' if key == pose.key_highlight else '#8A75A4')
-            rect(62,62+y+pose.right_paw_y,17,7,fur)
-            rect(38,64+y+pose.left_paw_y,14,6,fur)
-            if step in (1,3):
-                rect(78+pose.key_highlight*3,64,2,1,'#EBC2DB')
+            # Clearly a keyboard, not a controller-like cross.
+            rect(77, 63, 27, 5, '#9382A5')
+            rect(79, 64, 23, 3, '#E2CFE5')
+            for key in range(10):
+                rect(80+key*2, 65, 1, 1,
+                     '#EEA6BD' if key == pose.key_highlight else '#897DA6')
+            rect(62, 59+y+pose.right_paw_y, 13, 7, fur)
+            rect(39, 62+y+pose.left_paw_y, 13, 6, fur)
         # Short-lived silent life events (not permanent action text).
         if self.reaction_event:
             glyphs = {'coffee':'☕','stretch':'!','snack':'*','curious':'?','happy':'♥','sleep':'z'}
@@ -358,7 +370,7 @@ class PixelItemTile(QPushButton):
         canvas.setFixedSize(160, 96)
         look = preview_equipment(store.equipped, item_id)
         canvas.preview_equipped = look
-        canvas.mode = 'typing' if info['category'] != '컴퓨터' else 'gaming'
+        canvas.mode = 'typing'  # Computer previews must never show a game controller.
         image = QPixmap(160, 96)
         image.fill(Qt.GlobalColor.transparent)
         canvas.render(image)
@@ -413,8 +425,8 @@ class ShopDialog(BuddyDialog):
         self.owner = app_window
         self.store = app_window.store
         self.setWindowTitle('pixel-buddy · 상점')
-        self.resize(720, 660)
-        self.setMinimumSize(620, 580)
+        self.resize(760, 735)
+        self.setMinimumSize(650, 640)
         self.selected_item = None
         self.tiles = {}
         root = QVBoxLayout(self)
@@ -576,7 +588,7 @@ class ShopDialog(BuddyDialog):
         info = ITEMS[item_id]
         equipment = preview_equipment(self.store.equipped, item_id)
         self.preview.preview_equipped = equipment
-        self.preview.mode = 'gaming' if info['category'] == '컴퓨터' else 'typing'
+        self.preview.mode = 'typing'  # Work mode for all shop previews.
         self.preview.update()
         self.refresh()
 
@@ -761,7 +773,7 @@ class SettingsDialog(BuddyDialog):
         toolbar.toggled.connect(self.owner.set_toolbar_visible)
         layout.addWidget(toolbar)
         always = QCheckBox('항상 위에 표시')
-        always.setChecked(True)
+        always.setChecked(self.owner.always_on_top)
         always.toggled.connect(self.owner.set_always_on_top)
         layout.addWidget(always)
         self.clickthrough = QCheckBox('클릭 통과 모드 (트레이에서 해제 가능)')
@@ -887,6 +899,7 @@ class DesktopBuddy(QWidget):
         self.navigation_history = []
         self.current_page = None
         self.ui_settings = QSettings('PixelBuddy', 'PixelBuddy')
+        self.always_on_top = self.ui_settings.value('always_on_top', True, type=bool)
         self.management_position = self.ui_settings.value('management_position', None)
         self._event_timeout = 0.0
         self._next_event = time.monotonic() + random.uniform(45, 120)
@@ -896,7 +909,12 @@ class DesktopBuddy(QWidget):
         self.closed = False
         self.setWindowTitle('pixel-buddy')
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool | Qt.WindowType.WindowStaysOnTopHint)
+        # A normal frameless window stays visible when switching apps on macOS.
+        native_type = Qt.WindowType.Window if sys.platform == 'darwin' else Qt.WindowType.Tool
+        flags = Qt.WindowType.FramelessWindowHint | native_type
+        if self.always_on_top:
+            flags |= Qt.WindowType.WindowStaysOnTopHint
+        self.setWindowFlags(flags)
         self.scene = BuddyScene(self.store, self)
         self.toolbar = PetToolbar(self)
         layout = QVBoxLayout(self)
@@ -1044,9 +1062,11 @@ class DesktopBuddy(QWidget):
             self.scene.update()
 
     def set_always_on_top(self, enabled):
+        self.always_on_top = bool(enabled)
+        self.ui_settings.setValue('always_on_top', self.always_on_top)
         flags = self.windowFlags()
         flag = Qt.WindowType.WindowStaysOnTopHint
-        self.setWindowFlags(flags | flag if enabled else flags & ~flag)
+        self.setWindowFlags(flags | flag if self.always_on_top else flags & ~flag)
         self.show()
 
     def set_clickthrough(self, enabled):
@@ -1056,6 +1076,9 @@ class DesktopBuddy(QWidget):
         flags = self.windowFlags()
         flag = Qt.WindowType.WindowTransparentForInput
         self.setWindowFlags(flags | flag if enabled else flags & ~flag)
+        # Window flag changes can recreate the native Mac window.
+        if self.always_on_top:
+            self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
         self.show()
         settings = self.pages.get('settings')
         if settings:
