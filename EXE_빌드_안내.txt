@@ -1,0 +1,16 @@
+Pixel Buddy v0.2.3 / Windows EXE 제작
+
+1) build_exe.bat 을 더블클릭하세요.
+2) 최초 빌드에는 Python 3.11 이상과 인터넷 연결이 필요합니다.
+3) 완료하면 dist 폴더에 PixelBuddy.exe 가 생깁니다.
+4) 이후에는 PixelBuddy.exe 더블클릭으로 실행됩니다.
+5) 기존 저장 데이터: %LOCALAPPDATA%\PixelBuddy\save.sqlite3
+
+상점: 의상/머리띠/컴퓨터 탭 > 아이템 선택(미리보기만) > 구매 버튼(실제 결제)
+인벤토리와 설정은 상점과 별개 창으로 열립니다.
+
+주의: 빌드 키트는 Windows EXE 자체가 아닙니다. Windows PC에서 빌드해야 합니다.
+
+수정: PyInstaller 실행 진입점 run_pixelbuddy.py 사용(상대 import 오류 해결).
+
+새 UI: 인벤토리 다크 테마, 모든 관리 창 상단 바로가기/뒤로가기, 창 위치 기억.
