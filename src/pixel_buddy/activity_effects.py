@@ -26,8 +26,7 @@ def overlay_svg(mode="idle", frame=0, pc="laptop"):
         out.append(f'<rect x="{sx-18}" y="{sy+9}" width="28" height="3" rx="1" fill="#B7EBCB" opacity=".75"/>')
         out.append(f'<rect x="{sx-18}" y="{sy+15}" width="{12+step*2}" height="3" rx="1" fill="#E8C5E8" opacity=".75"/>')
         out.append(f'<rect x="{sx+6+(step%3)*2}" y="{sy+15}" width="2" height="6" rx="1" fill="#FFF7B9"/>')
-        if step in (1, 5):
-            out.append('<path d="M264 197 l-5 -6 M273 193 l0 -7" fill="none" stroke="#E5ABC1" stroke-width="2.5" stroke-linecap="round"/>')
+        # No disconnected upward arrows: the character's paws animate directly.
     elif mode == "mouse":
         cursor_x = sx + (step - 3) * 3
         cursor_y = sy + (step % 3 - 1) * 3
