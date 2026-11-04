@@ -142,7 +142,7 @@ class ActivityDetector:
         now = time.monotonic()
         # On macOS pynput may appear active even though TCC blocks key events.
         # Never report mouse forever merely because the listener started.
-        keyboard_usable = self.keyboard_available and self.mac_permission is not False
+        keyboard_usable = self.keyboard_available
         return choose_activity(self.last_key, self.last_mouse, now, keyboard_usable)
 
     def permission_hint(self):
