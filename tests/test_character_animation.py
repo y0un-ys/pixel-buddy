@@ -30,6 +30,23 @@ def test_all_activity_rows_have_actual_distinct_character_frames():
                 assert ImageChops.difference(first, second).getbbox(), (animal, mode)
 
 
+def test_working_paws_have_noticeable_frame_motion():
+    # Source-art RGB change must be substantial, not a 1px shimmer.
+    for animal in ANIMALS:
+        with Image.open(atlas_path(ROOT, animal)) as sheet:
+            rgba = sheet.convert("RGB")
+            for row, mode in enumerate(MODE_ORDER):
+                if mode == "idle":
+                    continue
+                top = row * FRAME_HEIGHT
+                a = rgba.crop((0, top, FRAME_WIDTH, top + FRAME_HEIGHT))
+                b = rgba.crop((FRAME_WIDTH, top,
+                               2 * FRAME_WIDTH, top + FRAME_HEIGHT))
+                delta = ImageChops.difference(a, b).convert("L")
+                moving_pixels = sum(delta.histogram()[10:])
+                assert moving_pixels > 5500, (animal, mode, moving_pixels)
+
+
 def test_source_frame_order_cycles_and_modes_do_not_overlap():
     for row, mode in enumerate(MODE_ORDER):
         assert source_rect(mode, 0) == (0, row * FRAME_HEIGHT,
