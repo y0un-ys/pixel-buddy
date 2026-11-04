@@ -5,7 +5,7 @@ anti-aliased Qt vector paths, rounded outlines, cheeks, tiny paws and species
 specific ears. Equipment and props are painted by the calling scene.
 """
 from PySide6.QtCore import QPointF, QRectF
-from PySide6.QtGui import QColor, QPainterPath, QPen
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 
 COLORS = {
     "cat": ("#F8C78D", "#FFF5E9", "#F2A6AF"),
@@ -24,7 +24,7 @@ def draw_cozy_pet(p, species, shirt, outfit, y=0, step=0):
     fur, cream, blush = COLORS[species]
     p.save()
     p.translate(0, y)
-    p.setRenderHint(p.RenderHint.Antialiasing, True)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
     def pen(color=OUTLINE, width=1.6):
         p.setPen(QPen(QColor(color), width))
