@@ -68,7 +68,7 @@ def main():
             image = scene.grab()
             assert image.save(str(destination / f"cat_{mode}.png"))
             painter.drawPixmap(index * 480, 0, image)
-            scene.frame = 12
+            scene.frame = 10
             scene.update()
             app.processEvents()
             assert scene.grab().save(str(destination / f"cat_{mode}_frame2.png"))
