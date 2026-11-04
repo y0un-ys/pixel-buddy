@@ -1,4 +1,4 @@
-"""Build approved seated chibi frame atlases with gentle local deformations.
+"""Build approved seated chibi frame atlases with visible painted-paw poses.
 
 Regeneration (developer workstation only):
     python -m pip install Pillow numpy scipy
@@ -9,7 +9,7 @@ Runtime needs none of these three packages: only the generated PNGs.
 from pathlib import Path
 import numpy as np
 from scipy.ndimage import map_coordinates
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ANIMALS = ("cat", "dog", "bear", "fox", "rabbit")
 MODES = ("typing", "mouse", "watching", "gaming", "idle", "sleep")
@@ -21,11 +21,23 @@ OUT = ROOT / "assets" / "animations"
 
 
 def pad_portrait(animal):
-    source = Image.open(BASE / (animal + ".png")).convert("RGBA")
-    if source.size == (W, H):
-        return source
+    # The legacy repaired dog portrait changed the ear's shape. Reconstruct
+    # from the approved original instead, keeping the floppy ear silhouette.
+    original = (ROOT / "assets" / "illustration_sources" / "dog_original.png"
+                if animal == "dog" else BASE / (animal + ".png"))
+    source = Image.open(original).convert("RGBA")
     canvas = Image.new("RGBA", (W, H))
-    canvas.alpha_composite(source, ((W - source.width) // 2, 14))
+    if animal == "dog":
+        # Extend only the portion missing behind the original head.
+        # Both ears remain drooping, not upright or windswept.
+        ear = Image.new("RGBA", (W, H))
+        painter = ImageDraw.Draw(ear)
+        painter.ellipse((225, 73, 278, 146), fill="#E7AF8D",
+                        outline="#7B536A", width=4)
+        painter.ellipse((236, 91, 266, 137), fill="#D49A82")
+        canvas.alpha_composite(ear)
+    canvas.alpha_composite(source, ((W - source.width) // 2, 14)
+                           if source.size != (W, H) else (0, 0))
     return canvas
 
 
@@ -43,31 +55,35 @@ def morph(frame, mode, phase_index):
         dx += horizontal * weight
         dy += vertical * weight
 
-    # Locations are anchored to the original approved seated illustration.
-    # The moving regions deform together, rather than layering stray paws.
+    # More distinguishable poses: the painted paws move 12-30 pixels while
+    # their sleeves/head move with them. No new disconnected arm primitives.
+    left = (-14, 13, -14, 13)[phase_index]
+    right = (14, -14, 14, -14)[phase_index]
     if mode == "typing":
-        move(146, 113, 86, 83, vertical=-1.3*phase)
-        move(191, 207, 24, 24, horizontal=1.9*phase, vertical=4.0*phase)
-        move(227, 208, 22, 22, horizontal=-1.5*phase, vertical=-3.5*phase)
-        move(56, 208, 42, 40, horizontal=1.3*phase)
+        move(184, 214, 26, 24, horizontal=left * .3, vertical=left)
+        move(222, 214, 28, 24, horizontal=right * .2, vertical=right)
+        move(151, 112, 94, 79, vertical=(-5, 2, -5, 2)[phase_index])
     elif mode == "mouse":
-        move(147, 112, 87, 80, horizontal=1.0*phase)
-        move(214, 202, 34, 27, horizontal=5.0*phase, vertical=1.9*alternate)
+        move(223, 208, 31, 28, horizontal=(0, 14, 25, 6)[phase_index],
+             vertical=(0, -5, 0, 4)[phase_index])
+        move(157, 115, 93, 77, horizontal=(-3, 0, 4, 0)[phase_index])
     elif mode == "watching":
-        move(140, 108, 97, 83, vertical=2.4*phase)
-        move(196, 203, 31, 31, vertical=1.4*alternate)
+        move(220, 209, 28, 28, horizontal=(1, -5, 4, -7)[phase_index],
+             vertical=(0, -15, -30, -15)[phase_index])
+        move(158, 113, 97, 80, vertical=(2, -2, 4, -2)[phase_index])
     elif mode == "gaming":
-        move(146, 113, 85, 81, vertical=-3.2*phase)
-        move(184, 203, 32, 28, horizontal=-2.0*phase, vertical=3.7*phase)
-        move(224, 204, 30, 26, horizontal=2.1*phase, vertical=-3.0*phase)
-        move(57, 201, 43, 43, horizontal=2.0*phase)
+        move(187, 210, 28, 29, horizontal=(-8, 7, -9, 9)[phase_index],
+             vertical=(12, -12, 14, -13)[phase_index])
+        move(222, 209, 29, 28, horizontal=(7, -8, 9, -8)[phase_index],
+             vertical=(-11, 13, -12, 14)[phase_index])
+        move(154, 110, 95, 83, vertical=(-9, 3, -7, 4)[phase_index])
     elif mode == "sleep":
-        move(143, 113, 90, 95, vertical=3.1+alternate*1.9)
-        move(160, 184, 90, 48, vertical=1.8*phase)
+        move(160, 115, 100, 90, horizontal=(-2, 0, 2, 0)[phase_index],
+             vertical=(9, 18, 14, 6)[phase_index])
+        move(192, 210, 84, 52, vertical=(3, 8, 4, 0)[phase_index])
     else:
-        move(145, 112, 92, 85, vertical=.8*phase)
-        move(158, 200, 85, 48, vertical=.9*phase)
-        move(55, 197, 41, 41, horizontal=1.5*phase)
+        move(160, 120, 98, 78, vertical=(0, 2, 4, 2)[phase_index])
+        move(183, 215, 81, 40, vertical=(0, 1, 2, 1)[phase_index])
 
     rgba = np.asarray(frame, dtype=np.float32)
     alpha = rgba[:, :, 3] / 255.
@@ -92,9 +108,12 @@ def main():
             for column in range(COUNT):
                 atlas.alpha_composite(
                     morph(base, mode, column), (W * column, H * row))
-        # P mode with alpha palette is compact and works with Qt QPixmap.
+        # Dog portrait fallback uses exactly the corrected input to this atlas.
+        if animal == "dog":
+            base.save(BASE / "dog.png", optimize=True)
+        # Palette with preserved alpha and no runtime Pillow dependency.
         atlas.quantize(
-            colors=192, method=Image.Quantize.FASTOCTREE,
+            colors=224, method=Image.Quantize.FASTOCTREE,
             dither=Image.Dither.NONE).save(
                 OUT / (animal + ".png"), optimize=True, compress_level=9)
         print(OUT / (animal + ".png"))
