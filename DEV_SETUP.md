@@ -4,7 +4,7 @@
 
 ## Current version
 
-**v0.4.5 — input-aware animations and delayed sleep**
+**v0.4.7 — visible 4FPS paw/head motion and repaired floppy dog ear**
 
 The complete source, legacy 25 animation sprite sheets, five new illustration PNGs, tests and build scripts are committed to `dev`. The preview on GitHub Actions uses the real Qt BuddyScene.
 
@@ -32,3 +32,14 @@ When a milestone is stable, open a PR from `dev` into `main`.
 - Use the manual state selector to preview typing/mouse/watching/gaming/idle/sleep without waiting for global detection.
 - `python tools/preview_illustrated_pet.py` exports screenshots and an `activity_states.png` contact sheet. GitHub Actions uploads the previews as an artifact.
 - All animations are non-invasive visual effects over the approved static character PNGs; separate articulated paw frames remain future work.
+
+
+## v0.4.7 artwork maintenance
+
+- Approved dog portrait source: `assets/illustration_sources/dog_original.png`.
+- Regenerate art with `pip install Pillow numpy scipy && python tools/generate_chibi_animations.py`.
+- The sprite-building GitHub workflow commits generated character frames and the corrected dog portrait to `dev`.
+- Runtime Qt requires no Pillow/numpy/scipy; only PNG files are packaged.
+- `tests/test_character_animation.py` verifies movement covers thousands of source pixels per action.
+- `tools/preview_illustrated_pet.py` captures adjacent frames with the actual Qt widget.
+- Native Apple Silicon and Intel Mac builds still need hands-on verification.
