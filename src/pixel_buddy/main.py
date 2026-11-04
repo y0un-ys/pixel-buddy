@@ -676,7 +676,7 @@ class SettingsDialog(BuddyDialog):
         selected = self.owner.manual_mode
         source = '자동' if selected == 'auto' else '수동'
         self.activity_status.setText(
-            f'현재 상태: {label} ({source})\\n'
+            f'현재 상태: {label} ({source})\n'
             + self.owner.detector.diagnostic()
         )
 
