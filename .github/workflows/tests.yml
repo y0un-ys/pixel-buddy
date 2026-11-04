@@ -28,9 +28,15 @@ jobs:
           python -m pytest -q tests
       - name: Render actual app artwork for visual QA
         run: python tools/preview_cozy_scene.py preview_cozy
+      - name: Capture real Qt desktop and shop previews
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python tools/preview_illustrated_pet.py preview_illustrated
       - name: Upload artwork preview
         uses: actions/upload-artifact@v4
         with:
           name: pixel-buddy-cozy-scenes
-          path: preview_cozy/
+          path: |
+            preview_cozy/
+            preview_illustrated/
           retention-days: 14
