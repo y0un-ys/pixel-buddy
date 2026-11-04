@@ -60,3 +60,14 @@ git push origin dev
 - 영상: 재생 진행바와 팝콘을 집어먹는 동작
 - 휴식: 호흡 동작 및 잠깐 나타나는 Z 표시
 - 애니메이션 4프레임 상태를 순수 Python 함수로 분리해 테스트 가능
+
+
+## v0.4.2 — Cozy character refresh
+
+- Five original rounded chibi pixel characters with smaller ears and softer eyes.
+- Computer thumbnails preview typing instead of showing a gaming controller.
+- Plants, lamps and plushies sit on the widened desk surface.
+- macOS topmost preference persists across launches; the companion uses a regular frameless window to avoid utility-panel hiding.
+- Regenerate 25 sprite sheets using `python tools/generate_sprites.py` (requires Pillow).
+
+This is a first visual style pass. Side-facing full-body actions and full shop visual polish remain future work.
