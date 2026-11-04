@@ -19,7 +19,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .
-          python -m pip install pytest cairosvg
+          python -m pip install pytest cairosvg Pillow
       - name: Check source and scene tests
         env:
           QT_QPA_PLATFORM: offscreen
