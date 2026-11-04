@@ -852,7 +852,7 @@ class DesktopBuddy(QWidget):
         stored_mode = 'idle' if self.scene.mode == 'sleep' else self.scene.mode
         self.store.activity_seconds[stored_mode] = self.store.activity_seconds.get(stored_mode, 0) + elapsed
         if now >= self._next_event:
-            unique = {'dog': 'happy', 'cat': 'sleep', 'bear': 'snack', 'fox': 'curious', 'rabbit': 'stretch'}
+            unique = {'dog': 'happy', 'cat': 'happy', 'bear': 'snack', 'fox': 'curious', 'rabbit': 'stretch'}
             options = ['coffee','stretch','snack','curious','happy', unique.get(self.store.animal, 'happy')]
             self.scene.reaction_event = random.choice(options)
             self._event_timeout = now + 3
