@@ -33,7 +33,7 @@ class BuddyScene(QWidget):
         self.frame = 0
         self._sprites = {}
         self.preview_equipped = None  # Temporary look, never persisted
-        self.event = ''
+        self.reaction_event = ''
         self.room_view = False
         self.setFixedSize(480, 288)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -223,10 +223,10 @@ class BuddyScene(QWidget):
             if step in (1,3):
                 rect(78+pose.key_highlight*3,64,2,1,'#EBC2DB')
         # Short-lived silent life events (not permanent action text).
-        if self.event:
+        if self.reaction_event:
             glyphs = {'coffee':'☕','stretch':'!','snack':'*','curious':'?','happy':'♥','sleep':'z'}
             rect(75, 15, 18, 12, '#FAE4DB')
-            text(81, 24, glyphs.get(self.event, '*'), '#684C69', 8)
+            text(81, 24, glyphs.get(self.reaction_event, '*'), '#684C69', 8)
         # Time-of-day atmosphere: warm lamp or morning sun.
         hour = time.localtime().tm_hour
         if hour >= 20 or hour < 6:
@@ -952,11 +952,11 @@ class DesktopBuddy(QWidget):
         if now >= self._next_event:
             unique = {'dog': 'happy', 'cat': 'sleep', 'bear': 'snack', 'fox': 'curious', 'rabbit': 'stretch'}
             options = ['coffee','stretch','snack','curious','happy','sleep', unique.get(self.store.animal, 'happy')]
-            self.scene.event = random.choice(options)
+            self.scene.reaction_event = random.choice(options)
             self._event_timeout = now + 3
             self._next_event = now + random.uniform(60, 160)
-        if self.scene.event and now >= self._event_timeout:
-            self.scene.event = ''
+        if self.scene.reaction_event and now >= self._event_timeout:
+            self.scene.reaction_event = ''
         if now - self._last_focus_check >= 2:
             self._last_focus_check = now
             self.check_fullscreen_focus()
