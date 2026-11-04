@@ -97,9 +97,12 @@ class BuddyScene(QWidget):
                 p, QRectF(0, 0, 480, 288))
 
             # Keep the seated portrait proportions consistent for all animals.
-            height = 168
+            # The earlier 168px portrait hid most painted paw motion.
+            # A 210px portrait keeps ears intact and makes gestures legible
+            # at ordinary desktop scale, while leaving room for the laptop.
+            height = 210
             width = height * illustration.width() / illustration.height()
-            center_x = 202
+            center_x = 194
             tick = self.frame // 2
             if self.mode == 'typing':
                 bob = (0, -2, 0, -1)[tick % 4]
@@ -118,13 +121,13 @@ class BuddyScene(QWidget):
                 # the same visual area as the original seated portrait.
                 width = height * FRAME_WIDTH / FRAME_HEIGHT
                 p.drawPixmap(
-                    QRectF(center_x - width / 2, 89, width, height),
+                    QRectF(center_x - width / 2, 68, width, height),
                     animation_atlas, QRectF(x, y, cell_w, cell_h),
                 )
             else:
                 # Missing atlases are harmless in older source checkouts.
                 p.drawPixmap(
-                    QRectF(center_x - width / 2, 89 + bob, width, height),
+                    QRectF(center_x - width / 2, 68 + bob, width, height),
                     illustration,
                     QRectF(0, 0, illustration.width(), illustration.height()),
                 )
