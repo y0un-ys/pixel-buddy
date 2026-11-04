@@ -50,7 +50,7 @@ class BuddyScene(QWidget):
         from PySide6.QtCore import QByteArray
         from PySide6.QtSvg import QSvgRenderer
         from .cozy_scene import scene_svg, scene_illustration_layers
-        from .activity_effects import overlay_svg
+        from .activity_effects import overlay_svg, display_computer
         from .character_animation import atlas_path, source_rect, FRAME_COUNT, FRAME_WIDTH, FRAME_HEIGHT, MODE_ORDER
 
         equipment = self.preview_equipped if self.preview_equipped is not None else self.store.equipped
@@ -66,6 +66,8 @@ class BuddyScene(QWidget):
             room=self.room_view,
             reaction=self.reaction_event,
         )
+        # Cinema layout is visual-only: the equipped computer is unchanged.
+        kwargs['pc'] = display_computer(kwargs['pc'], self.mode)
         species = kwargs['species']
         asset_root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[2]))
         if species not in self._illustrations:
@@ -116,7 +118,9 @@ class BuddyScene(QWidget):
                 bob = (0, 0, 1, 0)[(tick // 3) % 4]
             if has_animation:
                 # Actual character frames are generated from the approved art.
-                x, y, cell_w, cell_h = source_rect(self.mode, self.frame)
+                x, y, cell_w, cell_h = source_rect(
+                    self.mode, 0 if self.mode in ('typing', 'mouse') else self.frame
+                )
                 # Source cells have transparent margins, so the pet occupies
                 # the same visual area as the original seated portrait.
                 width = height * FRAME_WIDTH / FRAME_HEIGHT
@@ -133,7 +137,7 @@ class BuddyScene(QWidget):
                 )
             QSvgRenderer(QByteArray(foreground.encode('utf-8'))).render(
                 p, QRectF(0, 0, 480, 288))
-            effects = overlay_svg(self.mode, tick, kwargs['pc'])
+            effects = overlay_svg(self.mode, self.frame, kwargs['pc'], species)
             QSvgRenderer(QByteArray(effects.encode('utf-8'))).render(
                 p, QRectF(0, 0, 480, 288))
         p.end()
