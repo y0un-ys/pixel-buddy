@@ -80,14 +80,24 @@ def mac_input_monitoring_granted():
 
 
 def choose_activity(last_key, last_mouse, now, keyboard_usable=True):
-    """Pure classifier: timestamps only, never key contents."""
+    """Select an active behavior from observed event timestamps.
+
+    Only actual recent events can trigger typing or mouse animation.
+    An inaccessible keyboard listener must not imply mouse activity.
+    No key contents are examined or retained.
+    """
     if keyboard_usable and 0 <= now - last_key < 4.0:
         return 'typing'
-    if 0 <= now - max(last_key, last_mouse) > 90:
-        return 'idle'
-    if 0 <= now - last_mouse < 6.0:
+    if 0 <= now - last_mouse < 5.0:
         return 'mouse'
     return 'idle'
+
+
+def presentation_mode(activity, inactive_seconds, sleep_after=150.0):
+    """Sleep is a presentation state, never an input-detector event."""
+    if activity == 'idle' and inactive_seconds >= sleep_after:
+        return 'sleep'
+    return activity
 
 
 class ActivityDetector:
@@ -98,6 +108,8 @@ class ActivityDetector:
         self.listener = None
         self.mouse_listener = None
         self.keyboard_available = False
+        self.keyboard_events_seen = 0
+        self.mouse_events_seen = 0
         self.mouse_available = False
         self.mac_permission = mac_input_monitoring_granted()
 
@@ -121,6 +133,7 @@ class ActivityDetector:
         now = time.monotonic()
         self.last_input = now
         self.last_key = now
+        self.keyboard_events_seen += 1
 
     def _on_click(self, *_args):
         self._mark_mouse()
@@ -132,6 +145,18 @@ class ActivityDetector:
         now = time.monotonic()
         self.last_input = now
         self.last_mouse = now
+        self.mouse_events_seen += 1
+
+    def inactive_seconds(self):
+        return max(0.0, time.monotonic() - self.last_input)
+
+    def diagnostic(self):
+        now = time.monotonic()
+        key_age = f'{now - self.last_key:.0f}s' if self.keyboard_events_seen else '없음'
+        mouse_age = f'{now - self.last_mouse:.0f}s' if self.mouse_events_seen else '없음'
+        access = ('미허용' if self.mac_permission is False else '확인 불가' if self.mac_permission is None else '허용')
+        return (f'키보드: {key_age} (리스너 {"시작" if self.keyboard_available else "실패"}, 권한 {access}) | '
+                f'마우스: {mouse_age} | 미입력: {self.inactive_seconds():.0f}s')
 
     def detect(self):
         exe, title = foreground()
@@ -140,10 +165,9 @@ class ActivityDetector:
         if exe in BROWSERS and ('youtube' in title or 'netflix' in title or 'twitch' in title):
             return 'watching'
         now = time.monotonic()
-        # On macOS pynput may appear active even though TCC blocks key events.
-        # Never report mouse forever merely because the listener started.
-        keyboard_usable = self.keyboard_available
-        return choose_activity(self.last_key, self.last_mouse, now, keyboard_usable)
+        # Listener.start() does not guarantee TCC permission on macOS.
+        # We only classify observed events and never synthesize activity.
+        return choose_activity(self.last_key, self.last_mouse, now, self.keyboard_available)
 
     def permission_hint(self):
         if __import__('sys').platform != 'darwin':
