@@ -77,7 +77,8 @@ def test_keyboard_keys_alternate_without_duplicate_animal_limbs():
     assert 'cx="257"' in frames[0]
     assert 'cx="281"' in frames[1]
     assert 'cx="257"' in frames[2]
-    assert frames[0] != frames[2]
+    assert frames[0] != frames[1]
+    assert frames[0] == frames[2]
 
 
 def test_mouse_moves_slightly_without_artificial_arm():
