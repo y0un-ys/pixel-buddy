@@ -42,12 +42,12 @@ def overlay_svg(mode="idle", frame=0, pc="laptop", species="cat"):
             '<rect x="247" y="220" width="46" height="9" rx="3" fill="url(#keygrad)"/>')
         for i in range(6):
             x = 249 + i*7
-            hot = (i < 3) if phase in (0, 1) else (i >= 3)
+            hot = (i < 3) if phase % 2 == 0 else (i >= 3)
             fill = "#F1A9C2" if hot else "#E4D9EC"
-            y = 221 + (1 if hot and phase in (0, 2) else 0)
+            y = 221 + (1 if hot else 0)
             add(f'<rect x="{x}" y="{y}" width="5.5" height="4" rx="1" fill="{fill}"/>')
         # Contact cues stay inside the keyboard; no floating hands or arrows.
-        impact_x = 257 if phase in (0, 1) else 281
+        impact_x = 257 if phase % 2 == 0 else 281
         add(f'<ellipse cx="{impact_x}" cy="222" rx="5" ry="2" fill="#FFE5AA" opacity=".85"/>')
     elif mode == "mouse":
         # Compact mouse directly beside the character's original hand.
