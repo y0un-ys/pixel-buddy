@@ -35,43 +35,29 @@ def overlay_svg(mode="idle", frame=0, pc="laptop", species="cat"):
         return (f'<ellipse cx="{x}" cy="{y}" rx="{radius}" ry="{radius*0.70}" '
                 f'fill="{paw}" stroke="{EDGE}" stroke-width="2.4"/>')
     if mode == "typing":
-        # A clearly identifiable, full-width keyboard sits ON the desk, even
-        # when the laptop screen hides most of its original shallow base.
-        add('<rect x="245" y="218" width="100" height="17" rx="5" fill="#9787AF" stroke="#78678B" stroke-width="2"/>',
-            '<rect x="248" y="219" width="94" height="12" rx="4" fill="url(#keygrad)"/>')
-        for row in range(2):
-            for i in range(10):
-                x, y = 254+i*8.5, 221+row*5
-                hot = (i//3 == phase//2 and row == phase%2)
-                fill = "#F5B3C9" if hot else "#E3D8ED"
-                add(f'<rect x="{x}" y="{y}" width="6.3" height="3.5" rx="1" fill="{fill}" stroke="#B5A5CB" stroke-width=".4"/>')
-        # Both arms originate near the body: short downstroke alternates L/R.
-        # frames: left down / neutral / right down / neutral.
-        left_y = (220, 208, 210, 208)[phase]
-        right_y = (207, 208, 220, 208)[phase]
-        add(f'<path d="M227 203 Q244 207 261 {left_y-3}" fill="none" stroke="{EDGE}" stroke-width="12" stroke-linecap="round"/>',
-            f'<path d="M227 203 Q244 207 261 {left_y-3}" fill="none" stroke="{fur}" stroke-width="8" stroke-linecap="round"/>',
-            f'<path d="M236 206 Q267 204 302 {right_y-3}" fill="none" stroke="{EDGE}" stroke-width="12" stroke-linecap="round"/>',
-            f'<path d="M236 206 Q267 204 302 {right_y-3}" fill="none" stroke="{fur}" stroke-width="8" stroke-linecap="round"/>',
-            paw_at(262, left_y), paw_at(303, right_y))
-        if phase == 0:
-            add('<path d="M262 229 l-2 5 m-5 -6 l-4 4" stroke="#E99DBB" stroke-width="2" stroke-linecap="round"/>')
-        elif phase == 2:
-            add('<path d="M303 229 l2 5 m5 -6 l4 4" stroke="#E99DBB" stroke-width="2" stroke-linecap="round"/>')
+        # Compact keyboard directly under the illustration's EXISTING paws.
+        # Do not add artificial arms/paws: the approved PNG already has two.
+        # Left/right key groups alternate on successive 250ms ticks.
+        add('<rect x="245" y="219" width="50" height="13" rx="4" fill="#9683AD" stroke="#715F86" stroke-width="1.5"/>',
+            '<rect x="247" y="220" width="46" height="9" rx="3" fill="url(#keygrad)"/>')
+        for i in range(6):
+            x = 249 + i*7
+            hot = (i < 3) if phase in (0, 1) else (i >= 3)
+            fill = "#F1A9C2" if hot else "#E4D9EC"
+            y = 221 + (1 if hot and phase in (0, 2) else 0)
+            add(f'<rect x="{x}" y="{y}" width="5.5" height="4" rx="1" fill="{fill}"/>')
+        # Contact cues stay inside the keyboard; no floating hands or arrows.
+        impact_x = 257 if phase in (0, 1) else 281
+        add(f'<ellipse cx="{impact_x}" cy="222" rx="5" ry="2" fill="#FFE5AA" opacity=".85"/>')
     elif mode == "mouse":
-        # One paw stays planted; the other moves linearly 10px across a mousepad.
-        dx = (0, 5, 10, 5)[phase]
-        add('<rect x="277" y="219" width="63" height="17" rx="6" fill="#D9CBE6" stroke="#AD97C3" stroke-width="1.6"/>',
-            '<rect x="257" y="221" width="26" height="8" rx="3" fill="#E3D4E9" stroke="#B29EC4" stroke-width="1"/>',
-            '<ellipse cx="'+str(310+dx)+'" cy="226" rx="9" ry="5" fill="#F6E6FB" stroke="#796B8E" stroke-width="2"/>',
-            f'<path d="M228 203 Q267 204 {310+dx} 222" fill="none" stroke="{EDGE}" stroke-width="13" stroke-linecap="round"/>',
-            f'<path d="M228 203 Q267 204 {310+dx} 222" fill="none" stroke="{fur}" stroke-width="9" stroke-linecap="round"/>',
-            paw_at(310+dx, 220, 9),
-            paw_at(260, 218, 8))
+        # Compact mouse directly beside the character's original hand.
+        # Mouse travels a few pixels horizontally; no drawn replacement arm.
+        dx = (0, 3, 6, 3)[phase]
+        add('<rect x="261" y="219" width="43" height="13" rx="5" fill="#DCCCE8" stroke="#B29DC4" stroke-width="1"/>',
+            f'<ellipse cx="{281+dx}" cy="225" rx="7" ry="4.5" fill="#F8EEF9" stroke="#786C8B" stroke-width="1.6"/>')
         if phase == 2:
-            add(f'<path d="M{308+dx} 210 l-3 -5 m9 5 l3 -5" stroke="#EBA8CC" stroke-width="2.5" stroke-linecap="round"/>')
-        # Screen cursor follows a small horizontal sweep, not circular motion.
-        cx = sx + (-8, -2, 4, -2)[phase]
+            add(f'<path d="M{280+dx} 216 l-2 -3 m6 3 l2 -3" fill="none" stroke="#E8A4C7" stroke-width="2" stroke-linecap="round"/>')
+        cx = sx + (-6, -1, 4, -1)[phase]
         add(f'<path d="M{cx} {sy-6} v12 l4 -4 l4 7 l3 -2 l-4 -7 h6Z" fill="#FFF" stroke="#695D7D" stroke-width="1.2"/>')
     elif mode == "watching":
         # Large cinematic image inside the displayed PC's monitor, with
