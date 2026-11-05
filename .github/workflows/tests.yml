@@ -28,6 +28,11 @@ jobs:
           python -m pytest -q tests
       - name: Render actual app artwork for visual QA
         run: python tools/preview_cozy_scene.py preview_cozy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check browser video extension
+        run: node --test tools/browser_extension/tests/*.test.mjs
       - name: Install Linux Qt headless runtime libraries
         run: |
           sudo apt-get update -qq

@@ -27,6 +27,11 @@ ANIMALS = {'dog': '강아지', 'cat': '고양이', 'bear': '곰', 'fox': '여우
 DEFAULT_EQUIP = {'의상': 'hoodie', '머리띠': '', '컴퓨터': 'laptop', '책상': '', '소품': ''}
 
 
+def illustration_item_available(item_id: str) -> bool:
+    """Whether the current approved portrait can visibly display this item."""
+    return item_id == 'hoodie' or ITEMS[item_id]['category'] not in ('의상', '머리띠')
+
+
 def preview_equipment(current: dict, item_id: str) -> dict:
     """Build an item preview without changing equipped items or save data."""
     if item_id not in ITEMS:

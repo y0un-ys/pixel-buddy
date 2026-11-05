@@ -34,7 +34,7 @@ def test_working_paws_have_noticeable_frame_motion():
     # Source-art RGB change must be substantial, not a 1px shimmer.
     for animal in ANIMALS:
         with Image.open(atlas_path(ROOT, animal)) as sheet:
-            rgba = sheet.convert("RGB")
+            rgba = sheet.convert("RGBA").convert("RGB")
             for row, mode in enumerate(MODE_ORDER):
                 if mode == "idle":
                     continue
@@ -44,7 +44,14 @@ def test_working_paws_have_noticeable_frame_motion():
                                2 * FRAME_WIDTH, top + FRAME_HEIGHT))
                 delta = ImageChops.difference(a, b).convert("L")
                 moving_pixels = sum(delta.histogram()[10:])
-                assert moving_pixels > 5500, (animal, mode, moving_pixels)
+                if mode in ("typing", "mouse"):
+                    # Work gestures now move existing paws, not the whole head.
+                    paws = delta.crop((163, 181, 254, 247))
+                    assert sum(paws.histogram()[10:]) > 300, (animal, mode)
+                    assert delta.crop((0, 0, FRAME_WIDTH, 181)).getbbox() is None
+                    assert delta.crop((0, 247, FRAME_WIDTH, FRAME_HEIGHT)).getbbox() is None
+                else:
+                    assert moving_pixels > 5500, (animal, mode, moving_pixels)
 
 
 def test_source_frame_order_cycles_and_modes_do_not_overlap():

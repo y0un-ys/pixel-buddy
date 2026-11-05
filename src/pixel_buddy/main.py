@@ -4,15 +4,16 @@ import time
 import random
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QPoint, QRectF, QSize, QSettings
-from PySide6.QtGui import QPainter, QColor, QFont, QPen, QIcon, QPixmap
+from PySide6.QtCore import Qt, QTimer, QPoint, QRectF, QSize, QSettings, QUrl
+from PySide6.QtGui import QPainter, QColor, QFont, QPen, QIcon, QPixmap, QDesktopServices
 from PySide6.QtWidgets import (QApplication, QWidget, QDialog, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QProgressBar, QTabWidget, QGridLayout, QScrollArea,
     QSystemTrayIcon, QMenu, QComboBox, QCheckBox, QMessageBox, QFrame, QLineEdit, QStackedWidget, QSlider)
 
 from .progression import xp_required
-from .store import GameStore, CATALOG, ITEMS, ANIMALS, preview_equipment
+from .store import GameStore, CATALOG, ITEMS, ANIMALS, preview_equipment, illustration_item_available
 from .activity import ActivityDetector, presentation_mode
+from .browser_media import BrowserMediaBridge
 from .animation import animation_frame, pose_for
 
 # All management screens use a shared light palette. This is the first
@@ -34,7 +35,7 @@ class BuddyScene(QWidget):
         self._sprites = {}
         self._illustrations = {}
         self._animation_atlases = {}
-        self.preview_equipped = None  # Temporary look, never persisted
+        self.preview_equipped: dict[str, str] | None = None  # Temporary look, never persisted
         self.reaction_event = ''
         self.room_view = False
         self.setFixedSize(480, 288)
@@ -118,9 +119,7 @@ class BuddyScene(QWidget):
                 bob = (0, 0, 1, 0)[(tick // 3) % 4]
             if has_animation:
                 # Actual character frames are generated from the approved art.
-                x, y, cell_w, cell_h = source_rect(
-                    self.mode, 0 if self.mode in ('typing', 'mouse') else self.frame
-                )
+                x, y, cell_w, cell_h = source_rect(self.mode, self.frame)
                 # Source cells have transparent margins, so the pet occupies
                 # the same visual area as the original seated portrait.
                 width = height * FRAME_WIDTH / FRAME_HEIGHT
@@ -140,6 +139,16 @@ class BuddyScene(QWidget):
             effects = overlay_svg(self.mode, self.frame, kwargs['pc'], species)
             QSvgRenderer(QByteArray(effects.encode('utf-8'))).render(
                 p, QRectF(0, 0, 480, 288))
+            if has_animation and self.mode in ('typing', 'mouse', 'gaming'):
+                # Recompose the SAME painted paws above devices. No replacement
+                # limbs: this is an exact, clipped portion of the current cell.
+                p.save()
+                p.setClipRect(QRectF(202, 190, 58, 33))
+                p.drawPixmap(
+                    QRectF(center_x - width / 2, 68, width, height),
+                    animation_atlas, QRectF(x, y, cell_w, cell_h),
+                )
+                p.restore()
         p.end()
 
     def mousePressEvent(self, event):
@@ -248,7 +257,7 @@ class AnimalPicker(QDialog):
 
 
 class PixelItemTile(QPushButton):
-    """A catalogue card with a pixel-art render of the actual equipment."""
+    """A catalogue card rendered with the same current art as the companion."""
     def __init__(self, store, item_id, on_select, parent=None):
         info = ITEMS[item_id]
         super().__init__(parent)
@@ -258,20 +267,26 @@ class PixelItemTile(QPushButton):
         # The global theme styles these stateful item cards consistently.
         self.setObjectName('pixelItemTile')
         self.clicked.connect(lambda _=False: on_select(item_id))
-        # Render the same pixel objects as the main buddy scene so item cards
-        # always reflect their real in-game appearance.
-        canvas = BuddyScene(store)
+        canvas = BuddyScene(store, self)
+        self.canvas = canvas
+        canvas.hide()
         canvas.setFixedSize(160, 96)
         look = preview_equipment(store.equipped, item_id)
         canvas.preview_equipped = look
         canvas.mode = 'typing'  # Computer previews must never show a game controller.
+        if not illustration_item_available(item_id):
+            self.setText('일러스트 준비 중')
+        else:
+            self.render_icon()
+        self.setToolTip(f"{info['name']}\n{info['price']} 코인 · Lv.{info['level']}부터 구매")
+
+    def render_icon(self):
         image = QPixmap(160, 96)
         image.fill(Qt.GlobalColor.transparent)
-        canvas.render(image)
+        self.canvas.render(image)
         from PySide6.QtGui import QIcon as _Icon
         self.setIcon(_Icon(image))
-        self.setIconSize(QSize(158, 92))
-        self.setToolTip(f"{info['name']}\n{info['price']} 코인 · Lv.{info['level']}부터 구매")
+        self.setIconSize(QSize(144, 86))
 
 
 class BuddyDialog(QDialog):
@@ -420,8 +435,22 @@ class ShopDialog(BuddyDialog):
         preview_area.addLayout(details_col, 1)
         root.addLayout(preview_area)
         self.categories.currentChanged.connect(self._tab_changed)
+        self.preview_timer = QTimer(self)
+        self.preview_timer.timeout.connect(self.advance_previews)
+        self.preview_timer.start(250)
         self.install_navigation(root)
         self.refresh()
+
+    def advance_previews(self):
+        if not self.isVisible():
+            return
+        self.preview.frame = (self.preview.frame + 1) % 4
+        self.preview.update()
+        for item_id, tile in self.tiles.items():
+            if tile.isVisible() and illustration_item_available(item_id):
+                tile.canvas.preview_equipped = preview_equipment(self.store.equipped, item_id)
+                tile.canvas.frame = self.preview.frame
+                tile.render_icon()
 
     def _tab_changed(self, _index):
         # No stale selection from a different item category.
@@ -504,6 +533,13 @@ class ShopDialog(BuddyDialog):
             self.buy_button.setEnabled(False)
             return
         info = ITEMS[item_id]
+        if not illustration_item_available(item_id):
+            self.description.setText(
+                f"{info['name']}\n현재 캐릭터용 일러스트가 아직 없어요.\n"
+                '에셋이 추가되기 전에는 구매·장착할 수 없어요.')
+            self.buy_button.setText('일러스트 준비 중')
+            self.buy_button.setEnabled(False)
+            return
         owned = item_id in self.store.owned
         equipped = self.store.equipped[info['category']] == item_id
         self.description.setText(f"{info['name']}\n필요 레벨: Lv.{info['level']}\n가격: {info['price']:,} 코인" +
@@ -523,7 +559,7 @@ class ShopDialog(BuddyDialog):
 
     def buy_selected(self):
         item_id = self.selected_item
-        if not item_id:
+        if not item_id or not illustration_item_available(item_id):
             return
         if item_id in self.store.owned:
             result = self.store.equip(item_id)
@@ -581,7 +617,10 @@ class InventoryDialog(BuddyDialog):
                 active = (self.store.equipped[category] == ('' if item_id == 'none' else item_id))
                 row.addWidget(QLabel(name), 1)
                 button = QPushButton('장착 중' if active else '장착')
-                button.setEnabled(not active)
+                available = item_id == 'none' or illustration_item_available(item_id)
+                button.setEnabled(not active and available)
+                if not available:
+                    button.setText('일러스트 준비 중')
                 button.clicked.connect(lambda _, i=item_id: self.equip_item(i))
                 row.addWidget(button)
                 self.layout_items.addWidget(row_widget)
@@ -687,14 +726,25 @@ class SettingsDialog(BuddyDialog):
             hint = QLabel('자동 실행은 Windows의 PixelBuddy.exe 또는 Mac의 PixelBuddy.app으로 실행할 때 설정할 수 있어요.')
             hint.setWordWrap(True)
             layout.addWidget(hint)
-        note = QLabel('자동 감지는 Windows/macOS 활성 앱·키보드 이벤트를 기준으로 합니다.\n'
-                      '입력한 글자는 저장하지 않아요. 영상 재생·게임 승패는 정확히 감지하지 못할 수 있어요.')
+        note = QLabel('자동 감지는 입력 시각과 화면에 보이는 영상 사이트 창을 기준으로 합니다.\n'
+                      '영상이 일시정지되어 있어도 창이 보이면 팝콘을 먹어요. 입력한 문자는 읽지 않아요.')
         note.setWordWrap(True)
         layout.addWidget(note)
         if sys.platform == 'darwin':
             mac_hint = QLabel(self.owner.detector.permission_hint())
             mac_hint.setWordWrap(True)
             layout.addWidget(mac_hint)
+            title_hint = QLabel(
+                '확장 없이 YouTube·OTT 창이 화면에 보이면 팝콘을 먹어요.\n'
+                '창 제목을 읽지 못하면 macOS 화면 및 시스템 오디오 녹음 권한에서 '
+                '현재 PixelBuddy를 허용해 주세요. 화면 영상이나 오디오는 수집하지 않아요.')
+            title_hint.setWordWrap(True)
+            layout.addWidget(title_hint)
+            title_settings = QPushButton('영상 창 감지 권한 설정 열기')
+            title_settings.clicked.connect(
+                lambda: QDesktopServices.openUrl(
+                    QUrl('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture')))
+            layout.addWidget(title_settings)
         layout.addStretch()
         self.install_navigation(root_layout)
 
@@ -708,6 +758,9 @@ class SettingsDialog(BuddyDialog):
         self.activity_status.setText(
             f'현재 상태: {label} ({source})\n'
             + self.owner.detector.diagnostic()
+            + '\n' + (self.owner.browser_media.diagnostic()
+                       if self.owner.browser_media is not None
+                       else f'영상 연동 시작 실패: {self.owner.browser_media_error}')
         )
 
     def change_animal(self):
@@ -803,7 +856,14 @@ class DesktopBuddy(QWidget):
         super().__init__()
         path = (Path.home() / 'AppData' / 'Local' / 'PixelBuddy' / 'save.sqlite3' if sys.platform == 'win32' else Path.home() / 'Library' / 'Application Support' / 'PixelBuddy' / 'save.sqlite3' if sys.platform == 'darwin' else Path.home() / '.pixel_buddy' / 'save.sqlite3')
         self.store = GameStore(path)
-        self.detector = ActivityDetector()
+        self.browser_media_error = ''
+        try:
+            self.browser_media = BrowserMediaBridge()
+        except OSError as error:
+            self.browser_media = None
+            self.browser_media_error = str(error)
+        self.detector = ActivityDetector(
+            self.browser_media.playback_for if self.browser_media is not None else None)
         self.manual_mode = 'auto'
         self.drag_pos = None
         self.clickthrough = False
@@ -894,20 +954,20 @@ class DesktopBuddy(QWidget):
             self.check_fullscreen_focus()
         achievements = self.store.award_achievements()
         self.scene.frame += 1
+        if self.manual_mode == 'auto':
+            detected = self.detector.detect()
+            new_mode = presentation_mode(detected, self.detector.inactive_seconds())
+        else:
+            new_mode = self.manual_mode
+        if new_mode != self.scene.mode:
+            self.scene.mode = new_mode
         if self.scene.frame % 4 == 0:
-            if self.manual_mode == 'auto':
-                detected = self.detector.detect()
-                new_mode = presentation_mode(detected, self.detector.inactive_seconds())
-            else:
-                new_mode = self.manual_mode
-            if new_mode != self.scene.mode:
-                self.scene.mode = new_mode
             settings = self.pages.get('settings')
             if settings is not None and settings.isVisible():
                 settings.refresh_activity_status()
         # Repaint at EVERY 250ms timer tick. Previously repainting only on
         # frame % 4 == 0 displayed source_rect(..., frame % 4) == 0 forever.
-        # Keep activity detection throttled to once a second.
+        # Input transitions follow the same tick; only settings refresh is slower.
         self.scene.update()
         if now - self.save_tick >= 15 or levels:
             self.store.save()
@@ -1115,6 +1175,8 @@ class DesktopBuddy(QWidget):
         self.tick.stop()
         self.closed = True
         self.detector.stop()
+        if self.browser_media is not None:
+            self.browser_media.stop()
         self.store.close()
         self.tray.hide()
         QApplication.quit()

@@ -35,9 +35,13 @@ def scene_svg(species="cat", mode="typing", pc="laptop", prop="", desk="", outfi
     beat = int(frame) % 4
     wobble = (0, 1, 0, -1)[beat]
     shirt = {"hoodie":"#9CB1E7","pajamas":"#D6AFE6","suit":"#7285B2"}.get(outfit,"#9CB1E7")
-    wood = {"oak_desk":"#E6AC74","pink_desk":"#EFBDD6","gaming_desk":"#91A7C9"}.get(desk,"#E6B38B")
+    wood_top, wood, desk_edge, desk_leg, desk_highlight = {
+        "oak_desk": ("#F6D3A0", "#C88C55", "#A16F51", "#C99868", "#FFE9C8"),
+        "pink_desk": ("#FFE5F0", "#E58CB7", "#B96D96", "#DEA1BF", "#FFF1F8"),
+        "gaming_desk": ("#465063", "#252B40", "#302F47", "#4C526A", "#9FE3DD"),
+    }.get(desk, ("#FFF0D7", "#E6B38B", "#9B7183", "#C4937E", "#FFF1DB"))
     out = ['<svg xmlns="http://www.w3.org/2000/svg" width="480" height="288" viewBox="0 0 480 288">']
-    out += ['<defs><linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFF0D7"/><stop offset="1" stop-color="'+wood+'"/></linearGradient>',
+    out += ['<defs><linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop stop-color="'+wood_top+'"/><stop offset="1" stop-color="'+wood+'"/></linearGradient>',
             '<linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#A79ACF"/><stop offset="1" stop-color="#615986"/></linearGradient>',
             '<linearGradient id="chair" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#D5B5DE"/><stop offset="1" stop-color="#9986B7"/></linearGradient></defs>']
     # A floating little floor and a chair behind the animal, not a flat pixel island.
@@ -53,8 +57,8 @@ def scene_svg(species="cat", mode="typing", pc="laptop", prop="", desk="", outfi
             _path("M102 232 Q110 252 106 258 L123 258 Q127 247 125 231Z","#88739D","#76638E",3)]
     out += ['<!--PET-CHAIR-END-->']
     # Table legs: always beneath the tabletop and its objects.
-    out += [_rect(168,228,16,32,4,"#C4937E","#9B737E",3),
-            _rect(423,228,16,32,4,"#C4937E","#9B737E",3)]
+    out += [_rect(168,228,16,32,4,desk_leg,desk_edge,3),
+            _rect(423,228,16,32,4,desk_leg,desk_edge,3)]
     out += ['<!--PET-BODY-START-->']
     # Tail behind body, expressive but never detached.
     if species == "fox":
@@ -132,8 +136,8 @@ def scene_svg(species="cat", mode="typing", pc="laptop", prop="", desk="", outfi
                 _ellipse(204,97,9,27,"#FFF0F4",EDGE,2)]
     out += ['<!--PET-BODY-END-->', '<!--SCENE-FOREGROUND-->']
     # Desk: believable overlap across belly, with paws on TOP afterward.
-    out += [_rect(148,223,313,15,8,"url(#wood)","#9B7183",3.2),
-            _path("M152 230 L457 230","none","#FFF1DB",2)]
+    out += [_rect(148,223,313,15,8,"url(#wood)",desk_edge,3.2),
+            _path("M152 230 L457 230","none",desk_highlight,2)]
     # Computer display on the right; no controller unless actually gaming.
     if pc == "laptop":
         out += [_path("M275 219 L293 159 Q296 155 303 155 L368 155 Q373 155 372 164 L357 219Z","#A995C7",EDGE,4),
@@ -155,13 +159,15 @@ def scene_svg(species="cat", mode="typing", pc="laptop", prop="", desk="", outfi
         if pc != "dual":
             out += [_rect(393,165,20,45,5,"#ACA0C3",EDGE,3),
                     _rect(399,174,8,3,1,"#DDD6EC","none",0)]
-    # Screen action cues.
+    out += ['<!--PET-SCREEN-ACTION-START-->']
+    # Screen action cues. Illustrated scenes use the animated overlay instead.
     if mode == "watching":
         out += [_rect(317,189,21,4,2,"#F5B2B9","none",0)]
     elif mode == "mouse":
         out += [_path("M335 179 l0 11 l5 -3 l3 6 l3 -2 l-4 -6 l6 0Z","#FFF8F0",EDGE,1)]
     elif mode == "gaming":
         out += [_ellipse(339,190,6,6,"#F4CE90","none",0)]
+    out += ['<!--PET-SCREEN-ACTION-END-->']
     # Decor is centered ON THE DESK. Never hangs beyond x=461.
     if prop == "plant":
         out += [_rect(426,203,25,24,4,"#D8A28B","#9D7588",2.5),
@@ -224,7 +230,7 @@ def scene_illustration_layers(**kwargs):
     import re
 
     markup = scene_svg(**kwargs)
-    for name in ("CHAIR", "BODY", "PAWS"):
+    for name in ("CHAIR", "BODY", "PAWS", "SCREEN-ACTION"):
         markup, removed = re.subn(
             r"<!--PET-" + name + r"-START-->.*?<!--PET-" + name + r"-END-->",
             "",

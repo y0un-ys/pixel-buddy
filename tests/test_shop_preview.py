@@ -1,4 +1,9 @@
 from pixel_buddy.store import GameStore, preview_equipment
+from types import SimpleNamespace
+
+import pytest
+from PySide6.QtWidgets import QApplication, QScrollArea
+from pixel_buddy.main import BuddyScene, ShopDialog
 
 
 def test_preview_does_not_buy_or_equip(tmp_path):
@@ -24,3 +29,71 @@ def test_purchase_requires_action(tmp_path):
     assert store.growth.coins == 240
     assert store.equipped["의상"] == "suit"
     store.close()
+
+
+@pytest.fixture(scope="module")
+def qt_app():
+    return QApplication.instance() or QApplication([])
+
+
+def test_shop_preview_and_visible_item_cards_advance(qt_app, tmp_path):
+    store = GameStore(tmp_path / "shop.sqlite3")
+    store.animal = "cat"
+    shop = ShopDialog(SimpleNamespace(store=store, remember_management_position=lambda _: None))
+    shop.show()
+    shop.resize(650, 640)
+    shop.preview_timer.stop()
+    shop.categories.setCurrentIndex(2)
+    qt_app.processEvents()
+    category = shop.categories.widget(2)
+    assert category is not None
+    scroll = category.findChild(QScrollArea)
+    assert scroll is not None
+    assert scroll.horizontalScrollBar().maximum() == 0
+    before = dict(store.equipped)
+    coins = store.growth.coins
+    shop.select_item("desktop")
+    initial = shop.preview.grab().toImage()
+    shop.advance_previews()
+    qt_app.processEvents()
+    assert shop.preview.frame == 1
+    assert shop.tiles["desktop"].canvas.frame == 1
+    assert shop.preview.grab().toImage() != initial
+    icon_before = shop.tiles["desktop"].icon().cacheKey()
+    store.animal = "dog"
+    shop.advance_previews()
+    assert shop.tiles["desktop"].icon().cacheKey() != icon_before
+    assert store.equipped == before
+    assert store.growth.coins == coins
+    shop.close()
+    store.close()
+
+
+@pytest.mark.parametrize("item_id", ("pajamas", "suit", "cat_ears", "ribbon", "bunny_ears"))
+def test_missing_illustration_assets_do_not_charge_for_invisible_items(qt_app, tmp_path, item_id):
+    store = GameStore(tmp_path / "shop.sqlite3")
+    store.animal = "cat"
+    store.growth.level = 20
+    store.growth.coins = 10000
+    shop = ShopDialog(SimpleNamespace(store=store, remember_management_position=lambda _: None))
+    shop.select_item(item_id)
+    assert not shop.buy_button.isEnabled()
+    assert store.growth.coins == 10000
+    assert item_id not in store.owned
+    shop.close()
+    store.close()
+
+
+def test_each_desk_has_a_distinct_actual_render(qt_app, tmp_path):
+    store = GameStore(tmp_path / "shop.sqlite3")
+    store.animal = "cat"
+    scene = BuddyScene(store)
+    colors = []
+    for item_id in ("oak_desk", "pink_desk", "gaming_desk"):
+        scene.preview_equipped = preview_equipment(store.equipped, item_id)
+        colors.append(scene.grab().toImage().pixelColor(400, 234).name())
+    scene.close()
+    store.close()
+    assert len(set(colors)) == 3, colors
+    # Gaming equipment needs a visibly dark surface, not another light wood tint.
+    assert int(colors[2][1:3], 16) < 100

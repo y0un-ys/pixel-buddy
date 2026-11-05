@@ -7,6 +7,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,8 +16,9 @@ sys.path.insert(0, str(ROOT / "src"))
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication
-from pixel_buddy.main import BuddyScene
+from pixel_buddy.main import BuddyScene, ShopDialog
 from pixel_buddy.store import GameStore
+from pixel_buddy.theme import get_theme, make_stylesheet
 
 ANIMALS = ("cat", "dog", "bear", "fox", "rabbit")
 
@@ -25,6 +27,7 @@ def main():
     destination = Path(sys.argv[1] if len(sys.argv) > 1 else "preview_illustrated").resolve()
     destination.mkdir(parents=True, exist_ok=True)
     app = QApplication.instance() or QApplication([])
+    assert isinstance(app, QApplication)
     with tempfile.TemporaryDirectory() as tmp:
         store = GameStore(Path(tmp) / "test.sqlite3")
         atlas = QPixmap(480 * len(ANIMALS), 288)
@@ -81,6 +84,62 @@ def main():
             scene.close()
         painter.end()
         assert atlas_modes.save(str(destination / "activity_states.png"))
+        # Exercise the actual shared renderer, not just the atlas files:
+        # 5 animals x 3 computers x 6 modes x 4 consecutive timer frames.
+        for animal in ANIMALS:
+            store.animal = animal
+            for pc in ("laptop", "desktop", "dual"):
+                sheet = QPixmap(480 * 4, 288 * len(modes))
+                sheet.fill(QColor("#FFFFFF"))
+                painter = QPainter(sheet)
+                scene = BuddyScene(store)
+                scene.preview_equipped = dict(store.equipped, **{"컴퓨터": pc})
+                for row, mode in enumerate(modes):
+                    scene.mode = mode
+                    for frame in range(4):
+                        scene.frame = frame
+                        painter.drawPixmap(frame * 480, row * 288, scene.grab())
+                painter.end()
+                scene.close()
+                assert sheet.save(str(destination / f"behavior_{animal}_{pc}.png"))
+        # Shop cards (160), inventory (320), and minimum/default/maximum pet
+        # sizes share BuddyScene. Check transparency on light and dark desktops.
+        store.animal = "cat"
+        for width in (160, 240, 320, 360, 600):
+            height = round(width * 288 / 480)
+            for background in ("#FFFFFF", "#282638"):
+                sheet = QPixmap(width * 4, height * len(modes))
+                sheet.fill(QColor(background))
+                painter = QPainter(sheet)
+                scene = BuddyScene(store)
+                scene.setFixedSize(width, height)
+                for row, mode in enumerate(modes):
+                    scene.mode = mode
+                    for frame in range(4):
+                        scene.frame = frame
+                        painter.drawPixmap(frame * width, row * height, scene.grab())
+                painter.end()
+                scene.close()
+                assert sheet.save(str(destination / f"size_{width}_{background[1:]}.png"))
+        store.growth.level = 20
+        store.growth.coins = 10000
+        owner = SimpleNamespace(store=store, remember_management_position=lambda pos: None)
+        for theme in ("white", "dark"):
+            app.setStyleSheet(make_stylesheet(get_theme(theme)))
+            shop = ShopDialog(owner)
+            shop.preview_timer.stop()
+            for width, height in ((650, 640), (760, 735)):
+                shop.resize(width, height)
+                shop.show()
+                app.processEvents()
+                for category, item in enumerate(("suit", "ribbon", "desktop", "pink_desk", "plant")):
+                    shop.categories.setCurrentIndex(category)
+                    shop.select_item(item)
+                    app.processEvents()
+                    shop.advance_previews()
+                    app.processEvents()
+                    assert shop.grab().save(str(destination / f"shop_{theme}_{width}_{category}.png"))
+            shop.close()
         store.close()
     print(f"Saved real BuddyScene previews to {destination}")
 

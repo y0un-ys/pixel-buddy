@@ -57,16 +57,12 @@ def morph(frame, mode, phase_index):
 
     # More distinguishable poses: the painted paws move 12-30 pixels while
     # their sleeves/head move with them. No new disconnected arm primitives.
-    left = (-14, 13, -14, 13)[phase_index]
-    right = (14, -14, 14, -14)[phase_index]
     if mode == "typing":
-        move(184, 214, 26, 24, horizontal=left * .3, vertical=left)
-        move(222, 214, 28, 24, horizontal=right * .2, vertical=right)
-        move(151, 112, 94, 79, vertical=(-5, 2, -5, 2)[phase_index])
+        move(190, 207, 13, 16, vertical=(-5, 11, -5, 11)[phase_index])
+        move(223, 207, 13, 16, vertical=(11, -5, 11, -5)[phase_index])
     elif mode == "mouse":
-        move(223, 208, 31, 28, horizontal=(0, 14, 25, 6)[phase_index],
-             vertical=(0, -5, 0, 4)[phase_index])
-        move(157, 115, 93, 77, horizontal=(-3, 0, 4, 0)[phase_index])
+        move(223, 208, 16, 16, horizontal=(0, 5, 10, 5)[phase_index],
+             vertical=(5, 5, 8, 5)[phase_index])
     elif mode == "watching":
         move(220, 209, 28, 28, horizontal=(1, -5, 4, -7)[phase_index],
              vertical=(0, -15, -30, -15)[phase_index])
@@ -84,6 +80,16 @@ def morph(frame, mode, phase_index):
     else:
         move(160, 120, 98, 78, vertical=(0, 2, 4, 2)[phase_index])
         move(183, 215, 81, 40, vertical=(0, 1, 2, 1)[phase_index])
+
+    if mode in ("typing", "mouse"):
+        # Freeze the head, chair and body outside the painted forepaw area.
+        # Unlike an unbounded Gaussian, this cannot bob the whole portrait.
+        mask = (np.clip((xx - 163) / 15, 0, 1)
+                * np.clip((254 - xx) / 12, 0, 1)
+                * np.clip((yy - 181) / 14, 0, 1)
+                * np.clip((247 - yy) / 17, 0, 1))
+        dx *= mask
+        dy *= mask
 
     rgba = np.asarray(frame, dtype=np.float32)
     alpha = rgba[:, :, 3] / 255.

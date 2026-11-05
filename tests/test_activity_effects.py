@@ -22,8 +22,9 @@ def test_sleep_never_overrides_work():
         assert presentation_mode(activity, 999) == activity
 
 
-def test_observed_keyboard_wins_mouse():
-    assert choose_activity(99.9, 99.99, 100.0) == "typing"
+def test_newest_observed_input_wins():
+    assert choose_activity(99.9, 99.99, 100.0) == "mouse"
+    assert choose_activity(99.99, 99.9, 100.0) == "typing"
     assert choose_activity(80.0, 99.0, 100.0) == "mouse"
     assert choose_activity(80.0, 90.0, 100.0) == "idle"
 
@@ -44,7 +45,7 @@ def test_idle_has_no_sleep_indicator():
 
 
 def test_gaming_overlay_not_shown_in_other_modes():
-    controller = 'x="271" y="214" width="45" height="15"'
+    controller = 'x="215" y="207" width="39" height="15"'
     assert controller in overlay_svg("gaming")
     for mode in ("typing", "mouse", "watching", "idle", "sleep"):
         assert controller not in overlay_svg(mode)
@@ -69,24 +70,24 @@ def test_state_is_visible_in_settings_and_sleep_stats_do_not_overflow():
 def test_keyboard_keys_alternate_without_duplicate_animal_limbs():
     frames = [overlay_svg("typing", n, "laptop", "dog") for n in range(4)]
     for output in frames:
-        assert 'x="245" y="219" width="50" height="13"' in output
+        assert 'x="210" y="213" width="50" height="13"' in output
         assert 'M227 203' not in output
         assert 'Q244 207' not in output
         assert 'stroke-width="12"' not in output
         ET.fromstring(output)
-    assert 'cx="257"' in frames[0]
-    assert 'cx="281"' in frames[1]
-    assert 'cx="257"' in frames[2]
+    assert 'cx="246"' in frames[0]
+    assert 'cx="222"' in frames[1]
+    assert 'cx="246"' in frames[2]
     assert frames[0] != frames[1]
     assert frames[0] == frames[2]
 
 
 def test_mouse_moves_slightly_without_artificial_arm():
     frames = [overlay_svg("mouse", n) for n in range(4)]
-    assert 'cx="281"' in frames[0]
-    assert 'cx="284"' in frames[1]
-    assert 'cx="287"' in frames[2]
-    assert 'cx="284"' in frames[3]
+    assert 'cx="241"' in frames[0]
+    assert 'cx="244"' in frames[1]
+    assert 'cx="247"' in frames[2]
+    assert 'cx="244"' in frames[3]
     assert all('M228 203' not in output for output in frames)
 
 
@@ -98,3 +99,18 @@ def test_cinema_replaces_laptop_only_when_watching():
     assert 'width="57" height="42"' in watching
     assert 'x="270" y="222"' not in watching
     assert 'l-5 -22 h29' in watching
+
+
+def test_watching_kernel_moves_from_tub_to_mouth_then_is_eaten():
+    frames = [ET.fromstring(overlay_svg("watching", frame)) for frame in range(4)]
+    kernels = [next((element for element in image.iter()
+                     if element.attrib.get("id") == "popcorn-kernel"), None)
+               for image in frames]
+    for kernel, position in zip(kernels[:3], (
+            "translate(243 196)", "translate(242 188)", "translate(245 177)")):
+        assert kernel is not None
+        assert kernel.attrib["transform"] == position
+    assert kernels[3] is None
+    assert any(element.attrib.get("id") == "popcorn-bite" for element in frames[3].iter())
+    for mode in ("typing", "mouse", "gaming", "idle", "sleep"):
+        assert "popcorn-kernel" not in overlay_svg(mode)
