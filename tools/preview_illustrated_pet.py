@@ -75,7 +75,9 @@ def main():
             from PIL import Image, ImageChops
             first_image = Image.open(destination / f"cat_{mode}.png").convert("RGBA")
             second_image = Image.open(destination / f"cat_{mode}_frame2.png").convert("RGBA")
-            assert ImageChops.difference(first_image, second_image).getbbox(), mode
+            # RGBA getbbox() also tests the alpha channel; equal opacity
+            # would incorrectly report zero even when visible RGB keys change.
+            assert ImageChops.difference(first_image.convert("RGB"), second_image.convert("RGB")).getbbox(), mode
             scene.close()
         painter.end()
         assert atlas_modes.save(str(destination / "activity_states.png"))
