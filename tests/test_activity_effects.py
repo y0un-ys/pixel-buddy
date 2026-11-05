@@ -75,7 +75,8 @@ def test_keyboard_keys_alternate_without_duplicate_animal_limbs():
         assert 'stroke-width="12"' not in output
         ET.fromstring(output)
     assert 'cx="257"' in frames[0]
-    assert 'cx="281"' in frames[2]
+    assert 'cx="281"' in frames[1]
+    assert 'cx="257"' in frames[2]
     assert frames[0] != frames[2]
 
 
