@@ -66,24 +66,26 @@ def test_state_is_visible_in_settings_and_sleep_stats_do_not_overflow():
     assert "overlay_svg(self.mode, self.frame, kwargs['pc'], species)" in code
 
 
-def test_keyboard_is_visible_and_paws_alternate_contacts():
-    frames = [overlay_svg("typing", n, "laptop", "cat") for n in range(4)]
+def test_keyboard_keys_alternate_without_duplicate_animal_limbs():
+    frames = [overlay_svg("typing", n, "laptop", "dog") for n in range(4)]
     for output in frames:
-        assert 'x="245" y="218" width="100" height="17"' in output
-        assert 'M227 203' in output
+        assert 'x="245" y="219" width="50" height="13"' in output
+        assert 'M227 203' not in output
+        assert 'Q244 207' not in output
+        assert 'stroke-width="12"' not in output
         ET.fromstring(output)
-    assert 'cy="220"' in frames[0]
-    assert 'cy="220"' in frames[2]
+    assert 'cx="257"' in frames[0]
+    assert 'cx="281"' in frames[2]
     assert frames[0] != frames[2]
 
 
-def test_mouse_moves_linearly_with_single_paw():
+def test_mouse_moves_slightly_without_artificial_arm():
     frames = [overlay_svg("mouse", n) for n in range(4)]
-    assert 'cx="310"' in frames[0]
-    assert 'cx="315"' in frames[1]
-    assert 'cx="320"' in frames[2]
-    assert 'cx="315"' in frames[3]
-    assert all('cy="220"' in output for output in frames)
+    assert 'cx="281"' in frames[0]
+    assert 'cx="284"' in frames[1]
+    assert 'cx="287"' in frames[2]
+    assert 'cx="284"' in frames[3]
+    assert all('M228 203' not in output for output in frames)
 
 
 def test_cinema_replaces_laptop_only_when_watching():
