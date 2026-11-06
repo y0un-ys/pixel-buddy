@@ -9,9 +9,11 @@ CATALOG = [
     ('hoodie', '포근한 후드티', '의상', 0, 1),
     ('pajamas', '별빛 잠옷', '의상', 120, 2),
     ('suit', '꼬마 정장', '의상', 260, 5),
-    ('cat_ears', '고양이 귀', '머리띠', 100, 2),
+    ('streetwear', '힙한 스트릿패션', '의상', 420, 8),
+    ('cat_ears', '고양이 귀 헤드셋', '머리띠', 100, 2),
     ('ribbon', '딸기 리본', '머리띠', 150, 3),
-    ('bunny_ears', '토끼 귀', '머리띠', 300, 7),
+    ('bunny_ears', '토끼 귀 헤드셋', '머리띠', 300, 7),
+    ('gaming_headset', '게이밍 헤드셋', '머리띠', 480, 9),
     ('laptop', '작은 노트북', '컴퓨터', 0, 1),
     ('desktop', '데스크톱 PC', '컴퓨터', 300, 4),
     ('dual', '듀얼 모니터', '컴퓨터', 650, 10),
@@ -21,6 +23,8 @@ CATALOG = [
     ('plant', '작은 화분', '소품', 100, 2),
     ('lamp', '따뜻한 스탠드', '소품', 200, 4),
     ('plushie', '곰인형', '소품', 280, 6),
+    ('stream_microphone', '방송용 마이크', '소품', 520, 9),
+    ('ring_light', '방송용 링라이트', '소품', 430, 8),
 ]
 ITEMS = {item[0]: {'name': item[1], 'category': item[2], 'price': item[3], 'level': item[4]} for item in CATALOG}
 ANIMALS = {'dog': '강아지', 'cat': '고양이', 'bear': '곰', 'fox': '여우', 'rabbit': '토끼'}
@@ -29,7 +33,12 @@ DEFAULT_EQUIP = {'의상': 'hoodie', '머리띠': '', '컴퓨터': 'laptop', '�
 
 def illustration_item_available(item_id: str) -> bool:
     """Whether the current approved portrait can visibly display this item."""
-    return item_id == 'hoodie' or ITEMS[item_id]['category'] not in ('의상', '머리띠')
+    if item_id not in ITEMS:
+        return False
+    # In the illustrated renderer the five pajama portraits and the eight
+    # standalone product overlays now have real backed PNG assets.
+    return item_id in ('hoodie', 'pajamas', 'suit', 'streetwear', 'cat_ears',
+                       'ribbon', 'bunny_ears', 'gaming_headset') or ITEMS[item_id]['category'] not in ('의상', '머리띠')
 
 
 def preview_equipment(current: dict, item_id: str) -> dict:
