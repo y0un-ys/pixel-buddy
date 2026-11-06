@@ -2,7 +2,7 @@
 
 All eight product thumbnails are normalized transparent 300x320 RGBA-compatible
 PNGs. Coordinates are in BuddyScene's existing logical 480x288 workspace.
-The separate pajama variants are full-character illustrations, not overlays.
+Pajama, suit and streetwear variants are full-character illustrations, not overlays.
 """
 from pathlib import Path
 
@@ -10,7 +10,7 @@ PRODUCT_IDS = (
     "suit", "streetwear", "cat_ears", "ribbon", "bunny_ears",
     "gaming_headset", "stream_microphone", "ring_light",
 )
-FULL_PORTRAIT_OUTFITS = ("pajamas",)
+FULL_PORTRAIT_OUTFITS = ("pajamas", "suit", "streetwear")
 
 # Coordinates are intentionally conservative: preserve faces, chair, paws and
 # original seated silhouette. Product art is scaled down for display in-scene.
