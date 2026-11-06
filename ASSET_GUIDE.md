@@ -20,11 +20,19 @@ Current computer, desk and desk-prop art is rendered as SVG scene equipment.
 The approved PNG already contains the blue hoodie, chair, arms and paws.
 Changing the old SVG outfit/hat arguments does not change that PNG.
 
-Needed to make all existing costume purchases visibly distinct:
+Integrated: `pajamas` portraits for all five animals in
+`assets/illustrations/pajamas/`, with matching four-frame/six-mode atlases in
+`assets/animations/pajamas/`. The shared scene selects these when pajamas are
+equipped or previewed; hoodie uses the original portraits and atlases.
+The supplied canonical 300 x 320 canvases are used without padding or dog-ear
+reconstruction. The existing deformation generator animates the painted poses;
+these are not separately hand-drawn action frames.
+
+Still needed to make the remaining costume purchases visibly distinct:
 
 | Item IDs | Needed artwork |
 |----------|----------------|
-| `pajamas`, `suit` | Two full portrait variants per animal, preserving chair, head, paws and coordinates |
+| `suit` | One full portrait variant per animal, preserving chair, head, paws and coordinates |
 | `cat_ears`, `ribbon`, `bunny_ears` | Three transparent head-accessory layers per animal, aligned to the same full canvas |
 
 Keep a matching editable layered source (PSD, Krita or equivalent) for every
@@ -35,7 +43,7 @@ movable hand; never paste a second arm over a finished portrait.
 An approved static costume portrait can feed the existing atlas generator.
 Custom hand poses should instead be supplied as aligned frames. Animated
 headwear must follow the corresponding head positions, not stay fixed in space.
-File naming and runtime loading for new cosmetic layers will be wired when the
+Runtime loading for the remaining costume and headwear layers will be wired when
 approved assets are supplied; merely adding arbitrary PNG filenames is not yet
 a supported installation mechanism.
 

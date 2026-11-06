@@ -29,7 +29,7 @@ DEFAULT_EQUIP = {'의상': 'hoodie', '머리띠': '', '컴퓨터': 'laptop', '�
 
 def illustration_item_available(item_id: str) -> bool:
     """Whether the current approved portrait can visibly display this item."""
-    return item_id == 'hoodie' or ITEMS[item_id]['category'] not in ('의상', '머리띠')
+    return item_id in ('hoodie', 'pajamas') or ITEMS[item_id]['category'] not in ('의상', '머리띠')
 
 
 def preview_equipment(current: dict, item_id: str) -> dict:

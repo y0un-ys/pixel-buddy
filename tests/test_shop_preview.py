@@ -69,7 +69,7 @@ def test_shop_preview_and_visible_item_cards_advance(qt_app, tmp_path):
     store.close()
 
 
-@pytest.mark.parametrize("item_id", ("pajamas", "suit", "cat_ears", "ribbon", "bunny_ears"))
+@pytest.mark.parametrize("item_id", ("suit", "cat_ears", "ribbon", "bunny_ears"))
 def test_missing_illustration_assets_do_not_charge_for_invisible_items(qt_app, tmp_path, item_id):
     store = GameStore(tmp_path / "shop.sqlite3")
     store.animal = "cat"
@@ -97,3 +97,42 @@ def test_each_desk_has_a_distinct_actual_render(qt_app, tmp_path):
     assert len(set(colors)) == 3, colors
     # Gaming equipment needs a visibly dark surface, not another light wood tint.
     assert int(colors[2][1:3], 16) < 100
+
+
+@pytest.mark.parametrize("animal", ("cat", "dog", "bear", "fox", "rabbit"))
+def test_pajamas_preview_purchase_and_hoodie_switch(qt_app, tmp_path, monkeypatch, animal):
+    store = GameStore(tmp_path / "shop.sqlite3")
+    store.animal = animal
+    store.growth.level = 2
+    store.growth.coins = 500
+    scene = BuddyScene(store)
+    scene.setFixedSize(320, 192)
+    scene.mode = "typing"
+    hoodie = scene.grab().toImage()
+    shop = ShopDialog(SimpleNamespace(
+        store=store, scene=scene, remember_management_position=lambda _: None))
+    monkeypatch.setattr("pixel_buddy.main.QMessageBox.information", lambda *_: None)
+    shop.preview_timer.stop()
+    shop.select_item("pajamas")
+    assert shop.buy_button.isEnabled()
+    preview = shop.preview.grab().toImage()
+    assert preview != hoodie
+    assert store.equipped["의상"] == "hoodie"
+    assert store.growth.coins == 500
+    shop.buy_selected()
+    assert store.equipped["의상"] == "pajamas"
+    assert store.growth.coins == 380
+    assert scene.grab().toImage() == preview
+    scene.frame = 1
+    assert scene.grab().toImage() != preview
+    store.equip("hoodie")
+    scene.frame = 0
+    assert scene.grab().toImage() == hoodie
+    store.equip("pajamas")
+    shop.close()
+    scene.close()
+    store.close()
+    restored = GameStore(tmp_path / "shop.sqlite3")
+    assert restored.equipped["의상"] == "pajamas"
+    assert "pajamas" in restored.owned
+    restored.close()

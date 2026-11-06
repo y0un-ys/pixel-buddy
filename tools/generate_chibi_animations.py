@@ -20,7 +20,10 @@ BASE = ROOT / "assets" / "illustrations"
 OUT = ROOT / "assets" / "animations"
 
 
-def pad_portrait(animal):
+def pad_portrait(animal, outfit="hoodie"):
+    if outfit == "pajamas":
+        with Image.open(BASE / "pajamas" / (animal + ".png")) as source:
+            return source.convert("RGBA")
     # The legacy repaired dog portrait changed the ear's shape. Reconstruct
     # from the approved original instead, keeping the floppy ear silhouette.
     original = (ROOT / "assets" / "illustration_sources" / "dog_original.png"
@@ -41,7 +44,7 @@ def pad_portrait(animal):
     return canvas
 
 
-def morph(frame, mode, phase_index):
+def morph(frame, mode, phase_index, outfit="hoodie", animal="cat"):
     """Spatially smooth local paw/head/tail deformation preserving transparency."""
     phase = (0, 1, 0, -1)[phase_index]
     alternate = (0, -1, 0, 1)[phase_index]
@@ -57,7 +60,27 @@ def morph(frame, mode, phase_index):
 
     # More distinguishable poses: the painted paws move 12-30 pixels while
     # their sleeves/head move with them. No new disconnected arm primitives.
-    if mode == "typing":
+    if outfit == "pajamas":
+        # The supplied pajamas have shorter, forward-facing sleeves and paws
+        # farther left than the hoodie. Large hoodie warps stretch the cuffs,
+        # shirt pattern and even knees instead of articulating these hands.
+        offset = {"dog": -7, "rabbit": 8}.get(animal, 0)
+        gestures = {
+            "typing": ((0, -2), (0, 3), (0, -2), (0, 3)),
+            "mouse": ((0, 0), (2, 0), (4, 0), (2, 0)),
+            "watching": ((0, 0), (0, -3), (1, -6), (0, -3)),
+            "gaming": ((-1, 2), (1, -2), (-1, 2), (1, -2)),
+            "idle": ((0, 0), (0, 1), (0, 2), (0, 1)),
+            "sleep": ((0, 0), (0, 1), (0, 2), (0, 1)),
+        }
+        horizontal, vertical = gestures[mode][phase_index]
+        move(210, 205 + offset, 17, 16,
+             horizontal=horizontal, vertical=vertical)
+        if mode in ("typing", "gaming"):
+            move(170, 210 + offset, 17, 16, vertical=-vertical)
+        if mode == "sleep":
+            move(155, 110, 90, 70, vertical=(0, 2, 4, 2)[phase_index])
+    elif mode == "typing":
         move(190, 207, 13, 16, vertical=(-5, 11, -5, 11)[phase_index])
         move(223, 207, 13, 16, vertical=(11, -5, 11, -5)[phase_index])
     elif mode == "mouse":
@@ -81,7 +104,7 @@ def morph(frame, mode, phase_index):
         move(160, 120, 98, 78, vertical=(0, 2, 4, 2)[phase_index])
         move(183, 215, 81, 40, vertical=(0, 1, 2, 1)[phase_index])
 
-    if mode in ("typing", "mouse"):
+    if mode in ("typing", "mouse") or (outfit == "pajamas" and mode != "sleep"):
         # Freeze the head, chair and body outside the painted forepaw area.
         # Unlike an unbounded Gaussian, this cannot bob the whole portrait.
         mask = (np.clip((xx - 163) / 15, 0, 1)
@@ -105,25 +128,27 @@ def morph(frame, mode, phase_index):
     return Image.fromarray(np.uint8(np.clip(warped, 0, 255)), "RGBA")
 
 
-def main():
-    OUT.mkdir(parents=True, exist_ok=True)
+def main(outfit="hoodie"):
+    destination = OUT / "pajamas" if outfit == "pajamas" else OUT
+    destination.mkdir(parents=True, exist_ok=True)
     for animal in ANIMALS:
-        base = pad_portrait(animal)
+        base = pad_portrait(animal, outfit)
         atlas = Image.new("RGBA", (W * COUNT, H * len(MODES)))
         for row, mode in enumerate(MODES):
             for column in range(COUNT):
                 atlas.alpha_composite(
-                    morph(base, mode, column), (W * column, H * row))
+                    morph(base, mode, column, outfit, animal), (W * column, H * row))
         # Dog portrait fallback uses exactly the corrected input to this atlas.
-        if animal == "dog":
+        if animal == "dog" and outfit == "hoodie":
             base.save(BASE / "dog.png", optimize=True)
         # Palette with preserved alpha and no runtime Pillow dependency.
         atlas.quantize(
             colors=224, method=Image.Quantize.FASTOCTREE,
             dither=Image.Dither.NONE).save(
-                OUT / (animal + ".png"), optimize=True, compress_level=9)
-        print(OUT / (animal + ".png"))
+                destination / (animal + ".png"), optimize=True, compress_level=9)
+        print(destination / (animal + ".png"))
 
 
 if __name__ == "__main__":
     main()
+    main("pajamas")

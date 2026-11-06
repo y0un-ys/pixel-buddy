@@ -71,3 +71,32 @@ def test_dog_ear_is_not_cut_off_by_image_edge():
         bounds = dog.convert("RGBA").getchannel("A").getbbox()
         assert bounds[0] > 2
         assert bounds[2] < FRAME_WIDTH - 2
+
+
+def test_pajamas_atlases_have_transparent_moving_frames_for_every_animal():
+    for animal in ANIMALS:
+        with Image.open(atlas_path(ROOT, animal, "pajamas")) as source:
+            sheet = source.convert("RGBA")
+            assert sheet.size == (1200, 1920)
+            assert sheet.getchannel("A").getextrema()[0] == 0
+            for mode in MODE_ORDER:
+                frames = [sheet.crop((x, y, x + w, y + h))
+                          for x, y, w, h in (source_rect(mode, i) for i in range(4))]
+                for first, second in zip(frames, frames[1:]):
+                    delta = ImageChops.difference(first.convert("RGB"), second.convert("RGB"))
+                    assert delta.getbbox(), (animal, mode)
+
+
+def test_pajamas_hand_gestures_do_not_pull_the_legs_or_head():
+    for animal in ANIMALS:
+        with Image.open(atlas_path(ROOT, animal, "pajamas")) as source:
+            sheet = source.convert("RGBA").convert("RGB")
+            for mode in ("typing", "mouse", "watching", "gaming", "idle"):
+                row = MODE_ORDER.index(mode)
+                first = sheet.crop((0, row * 320, 300, (row + 1) * 320))
+                for frame in range(1, 4):
+                    other = sheet.crop((frame * 300, row * 320,
+                                        (frame + 1) * 300, (row + 1) * 320))
+                    delta = ImageChops.difference(first, other)
+                    assert delta.crop((0, 0, 300, 181)).getbbox() is None, (animal, mode, "head")
+                    assert delta.crop((0, 247, 300, 320)).getbbox() is None, (animal, mode, "legs")

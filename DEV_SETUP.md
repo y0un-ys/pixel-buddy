@@ -95,7 +95,11 @@ When a milestone is stable, open a PR from `dev` into `main`.
   extension README for closed-shadow-root and background timer limitations.
 - The shop's visible cards and main preview now advance the actual character
   atlas. Preview still does not spend coins or persist equipment.
-- Pajamas, suit and headwear await compatible illustration assets. Their shop
+- Pajamas use the supplied five portraits in `assets/illustrations/pajamas/`
+  and generated atlases in `assets/animations/pajamas/`. Run
+  `.venv/bin/python -c 'from tools.generate_chibi_animations import main; main("pajamas")'`
+  to regenerate only pajamas without changing existing hoodie art.
+- Suit and headwear await compatible illustration assets. Their shop
   purchase/equip controls are disabled so invisible artwork is not sold.
   Existing inventory/save records are preserved. See `ASSET_GUIDE.md`.
 - Extension tests: `node --test tools/browser_extension/tests/*.test.mjs`.

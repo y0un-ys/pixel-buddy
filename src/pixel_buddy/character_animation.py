@@ -18,7 +18,10 @@ def source_rect(mode, frame):
     return (column * FRAME_WIDTH, row * FRAME_HEIGHT, FRAME_WIDTH, FRAME_HEIGHT)
 
 
-def atlas_path(asset_root, species):
+def atlas_path(asset_root, species, outfit="hoodie"):
     if species not in ("cat", "dog", "bear", "fox", "rabbit"):
         species = "cat"
-    return Path(asset_root) / "assets" / "animations" / (species + ".png")
+    folder = Path(asset_root) / "assets" / "animations"
+    if outfit == "pajamas":
+        folder /= "pajamas"
+    return folder / (species + ".png")

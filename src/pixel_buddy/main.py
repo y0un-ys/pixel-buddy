@@ -70,15 +70,19 @@ class BuddyScene(QWidget):
         # Cinema layout is visual-only: the equipped computer is unchanged.
         kwargs['pc'] = display_computer(kwargs['pc'], self.mode)
         species = kwargs['species']
+        outfit = equipment.get('의상', 'hoodie')
+        appearance = (species, outfit)
         asset_root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[2]))
-        if species not in self._illustrations:
-            self._illustrations[species] = QPixmap(
-                str(asset_root / 'assets' / 'illustrations' / f'{species}.png'))
-        illustration = self._illustrations[species]
-        if species not in self._animation_atlases:
-            self._animation_atlases[species] = QPixmap(
-                str(atlas_path(asset_root, species)))
-        animation_atlas = self._animation_atlases[species]
+        if appearance not in self._illustrations:
+            folder = asset_root / 'assets' / 'illustrations'
+            if outfit == 'pajamas':
+                folder /= 'pajamas'
+            self._illustrations[appearance] = QPixmap(str(folder / f'{species}.png'))
+        illustration = self._illustrations[appearance]
+        if appearance not in self._animation_atlases:
+            self._animation_atlases[appearance] = QPixmap(
+                str(atlas_path(asset_root, species, outfit)))
+        animation_atlas = self._animation_atlases[appearance]
         has_animation = (
             not animation_atlas.isNull()
             and animation_atlas.width() == FRAME_WIDTH * FRAME_COUNT

@@ -41,7 +41,7 @@ def test_main_scene_loads_illustration_with_fallback():
     assert "scene_illustration_layers(**kwargs)" in source
     assert "'assets' / 'illustrations'" in source
     assert "if illustration.isNull():" in source
-    assert "self._illustrations[species]" in source
+    assert "self._illustrations[appearance]" in source
 
 
 @pytest.fixture(scope="module")
