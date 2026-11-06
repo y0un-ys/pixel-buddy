@@ -69,18 +69,41 @@ def test_shop_preview_and_visible_item_cards_advance(qt_app, tmp_path):
     store.close()
 
 
-@pytest.mark.parametrize("item_id", ("pajamas", "suit", "cat_ears", "ribbon", "bunny_ears"))
-def test_missing_illustration_assets_do_not_charge_for_invisible_items(qt_app, tmp_path, item_id):
+@pytest.mark.parametrize("item_id", ("pajamas", "suit", "streetwear", "cat_ears",
+                                    "ribbon", "bunny_ears", "gaming_headset",
+                                    "stream_microphone", "ring_light"))
+def test_shop_previews_do_not_charge_until_purchase(qt_app, tmp_path, item_id):
+    from pixel_buddy.store import ITEMS
     store = GameStore(tmp_path / "shop.sqlite3")
     store.animal = "cat"
-    store.growth.level = 20
+    store.growth.level = 30
     store.growth.coins = 10000
-    shop = ShopDialog(SimpleNamespace(store=store, remember_management_position=lambda _: None))
+    shop = ShopDialog(SimpleNamespace(
+        store=store, scene=BuddyScene(store),
+        remember_management_position=lambda _: None,
+    ))
     shop.select_item(item_id)
-    assert not shop.buy_button.isEnabled()
+    qt_app.processEvents()
+    assert shop.buy_button.isEnabled(), item_id
+    assert shop.preview.preview_equipped[ITEMS[item_id]["category"]] == item_id
     assert store.growth.coins == 10000
     assert item_id not in store.owned
+    assert not shop.preview.grab().isNull()
     shop.close()
+    store.close()
+
+
+def test_purchasing_asset_backed_outfit_persists(qt_app, tmp_path):
+    db = tmp_path / "shop.sqlite3"
+    store = GameStore(db)
+    store.growth.level = 30
+    store.growth.coins = 10000
+    assert "완료" in store.purchase("streetwear")
+    assert store.equipped["의상"] == "streetwear"
+    store.close()
+    store = GameStore(db)
+    assert "streetwear" in store.owned
+    assert store.equipped["의상"] == "streetwear"
     store.close()
 
 
