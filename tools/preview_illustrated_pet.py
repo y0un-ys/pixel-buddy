@@ -121,6 +121,30 @@ def main():
                 painter.end()
                 scene.close()
                 assert sheet.save(str(destination / f"size_{width}_{background[1:]}.png"))
+        # Asset-backed catalogue previews: same item IDs and BuddyScene
+        # used by the real shop and inventory, for visual QA.
+        from pixel_buddy.shop_assets import PRODUCT_IDS
+        from pixel_buddy.store import preview_equipment
+        for animal in ANIMALS:
+            store.animal = animal
+            contact = QPixmap(480 * 4, 288 * 2)
+            contact.fill(QColor("#FFFFFF"))
+            painter = QPainter(contact)
+            for n, item_id in enumerate(PRODUCT_IDS):
+                scene = BuddyScene(store)
+                scene.mode = "idle"
+                scene.preview_equipped = preview_equipment(store.equipped, item_id)
+                scene.frame = 0
+                scene.show()
+                app.processEvents()
+                snap = scene.grab()
+                assert not snap.isNull()
+                painter.drawPixmap((n % 4) * 480, (n // 4) * 288, snap)
+                assert snap.save(str(destination / f"item_{animal}_{item_id}.png"))
+                scene.close()
+            painter.end()
+            assert contact.save(str(destination / f"shop_items_{animal}.png"))
+
         store.growth.level = 20
         store.growth.coins = 10000
         owner = SimpleNamespace(store=store, remember_management_position=lambda pos: None)

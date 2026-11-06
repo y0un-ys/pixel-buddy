@@ -28,12 +28,10 @@ The supplied canonical 300 x 320 canvases are used without padding or dog-ear
 reconstruction. The existing deformation generator animates the painted poses;
 these are not separately hand-drawn action frames.
 
-Still needed to make the remaining costume purchases visibly distinct:
-
-| Item IDs | Needed artwork |
-|----------|----------------|
-| `suit` | One full portrait variant per animal, preserving chair, head, paws and coordinates |
-| `cat_ears`, `ribbon`, `bunny_ears` | Three transparent head-accessory layers per animal, aligned to the same full canvas |
+The upstream shop additions also supply full-character `suit` and `streetwear`
+portraits for all five animals. These remain static portrait variants; they do
+not reuse the hoodie animation atlas. Headwear and broadcast equipment use the
+product PNG overlays mapped by `shop_assets.py`.
 
 Keep a matching editable layered source (PSD, Krita or equivalent) for every
 animal. Separate body/clothes, left sleeve/paw, right sleeve/paw, head/face and
@@ -43,9 +41,10 @@ movable hand; never paste a second arm over a finished portrait.
 An approved static costume portrait can feed the existing atlas generator.
 Custom hand poses should instead be supplied as aligned frames. Animated
 headwear must follow the corresponding head positions, not stay fixed in space.
-Runtime loading for the remaining costume and headwear layers will be wired when
-approved assets are supplied; merely adding arbitrary PNG filenames is not yet
-a supported installation mechanism.
+New standalone clothes in `assets/shop/clothes/`, the unclothed dog base and the
+four supplied cat popcorn frames are source assets, not automatically applied
+runtime layers. Merely adding arbitrary PNG filenames is not yet a supported
+installation mechanism.
 
 ## Expression and popcorn pose request
 

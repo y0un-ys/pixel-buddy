@@ -35,6 +35,7 @@ class BuddyScene(QWidget):
         self._sprites = {}
         self._illustrations = {}
         self._animation_atlases = {}
+        self._product_art = {}
         self.preview_equipped: dict[str, str] | None = None  # Temporary look, never persisted
         self.reaction_event = ''
         self.room_view = False
@@ -53,6 +54,7 @@ class BuddyScene(QWidget):
         from .cozy_scene import scene_svg, scene_illustration_layers
         from .activity_effects import overlay_svg, display_computer
         from .character_animation import atlas_path, source_rect, FRAME_COUNT, FRAME_WIDTH, FRAME_HEIGHT, MODE_ORDER
+        from .shop_assets import shop_icon_path, portrait_variant_path, equipped_layers, SCENE_BOXES
 
         equipment = self.preview_equipped if self.preview_equipped is not None else self.store.equipped
         kwargs = dict(
@@ -74,17 +76,19 @@ class BuddyScene(QWidget):
         appearance = (species, outfit)
         asset_root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[2]))
         if appearance not in self._illustrations:
-            folder = asset_root / 'assets' / 'illustrations'
-            if outfit == 'pajamas':
-                folder /= 'pajamas'
-            self._illustrations[appearance] = QPixmap(str(folder / f'{species}.png'))
+            portrait_file = portrait_variant_path(asset_root, species, outfit)
+            portrait = QPixmap(str(portrait_file)) if portrait_file is not None else QPixmap()
+            if portrait.isNull():
+                portrait = QPixmap(str(asset_root / 'assets' / 'illustrations' / f'{species}.png'))
+            self._illustrations[appearance] = portrait
         illustration = self._illustrations[appearance]
         if appearance not in self._animation_atlases:
             self._animation_atlases[appearance] = QPixmap(
                 str(atlas_path(asset_root, species, outfit)))
         animation_atlas = self._animation_atlases[appearance]
         has_animation = (
-            not animation_atlas.isNull()
+            outfit in ('hoodie', 'pajamas')
+            and not animation_atlas.isNull()
             and animation_atlas.width() == FRAME_WIDTH * FRAME_COUNT
             and animation_atlas.height() == FRAME_HEIGHT * len(MODE_ORDER)
         )
@@ -138,8 +142,23 @@ class BuddyScene(QWidget):
                     illustration,
                     QRectF(0, 0, illustration.width(), illustration.height()),
                 )
+            # Full-character wardrobe portraits already contain the correct
+            # body, clothing and existing hands: never layer a floating coat.
+            def paint_product(item_id):
+                if item_id not in self._product_art:
+                    file = shop_icon_path(asset_root, item_id)
+                    self._product_art[item_id] = QPixmap(str(file)) if file else QPixmap()
+                art = self._product_art[item_id]
+                if not art.isNull():
+                    bx, by, bw, bh = SCENE_BOXES[item_id]
+                    p.drawPixmap(QRectF(bx, by, bw, bh), art,
+                                 QRectF(0, 0, art.width(), art.height()))
+
             QSvgRenderer(QByteArray(foreground.encode('utf-8'))).render(
                 p, QRectF(0, 0, 480, 288))
+            for item_id in equipped_layers(equipment):
+                if item_id not in ('suit', 'streetwear'):
+                    paint_product(item_id)
             effects = overlay_svg(self.mode, self.frame, kwargs['pc'], species)
             QSvgRenderer(QByteArray(effects.encode('utf-8'))).render(
                 p, QRectF(0, 0, 480, 288))
@@ -285,9 +304,22 @@ class PixelItemTile(QPushButton):
         self.setToolTip(f"{info['name']}\n{info['price']} 코인 · Lv.{info['level']}부터 구매")
 
     def render_icon(self):
+        from .shop_assets import shop_icon_path
         image = QPixmap(160, 96)
         image.fill(Qt.GlobalColor.transparent)
-        self.canvas.render(image)
+        root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[2]))
+        icon_path = shop_icon_path(root, self.item_id)
+        product = QPixmap(str(icon_path)) if icon_path else QPixmap()
+        if not product.isNull():
+            # The existing store card is 160x96; product-only art avoids
+            # shrinking a small accessory inside an entire room scene.
+            painter = QPainter(image)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+            painter.drawPixmap(QRectF(41, 4, 78, 88), product,
+                               QRectF(0, 0, product.width(), product.height()))
+            painter.end()
+        else:
+            self.canvas.render(image)
         from PySide6.QtGui import QIcon as _Icon
         self.setIcon(_Icon(image))
         self.setIconSize(QSize(144, 86))

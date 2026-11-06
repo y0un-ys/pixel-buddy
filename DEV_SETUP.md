@@ -99,7 +99,7 @@ When a milestone is stable, open a PR from `dev` into `main`.
   and generated atlases in `assets/animations/pajamas/`. Run
   `.venv/bin/python -c 'from tools.generate_chibi_animations import main; main("pajamas")'`
   to regenerate only pajamas without changing existing hoodie art.
-- Suit and headwear await compatible illustration assets. Their shop
-  purchase/equip controls are disabled so invisible artwork is not sold.
-  Existing inventory/save records are preserved. See `ASSET_GUIDE.md`.
+- Suit and streetwear use upstream full-character portrait variants; headwear
+  and broadcast equipment use the mapped product PNG overlays. Existing
+  inventory/save records are preserved. See `ASSET_GUIDE.md`.
 - Extension tests: `node --test tools/browser_extension/tests/*.test.mjs`.
