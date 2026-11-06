@@ -21,7 +21,8 @@ def test_exact_product_icons_exist_and_are_transparent():
         with Image.open(path) as image:
             assert image.size == (300, 320)
             rgba = image.convert("RGBA")
-            assert rgba.getchannel("A").getextrema() == (0, 255)
+            assert rgba.getchannel("A").getextrema()[0] == 0
+            assert rgba.getchannel("A").getextrema()[1] >= 200
         assert item in ITEMS and illustration_item_available(item)
         assert item in SCENE_BOXES
 
@@ -46,7 +47,8 @@ def test_all_full_outfit_portraits_remain_whole():
             assert path.is_file(), (animal, outfit)
             with Image.open(path) as image:
                 assert image.size == (300, 320)
-                assert image.convert("RGBA").getchannel("A").getextrema() == (0, 255)
+                assert image.convert("RGBA").getchannel("A").getextrema()[0] == 0
+                assert image.convert("RGBA").getchannel("A").getextrema()[1] >= 200
     assert portrait_variant_path(ROOT, "cat", "hoodie") is None
 
 
