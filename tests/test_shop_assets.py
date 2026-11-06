@@ -39,12 +39,14 @@ def test_original_shop_categories_and_old_ids_are_retained():
     assert ITEMS["gaming_headset"]["category"] == "머리띠"
 
 
-def test_five_pajama_portraits_remain_whole():
+def test_all_full_outfit_portraits_remain_whole():
     for animal in ANIMALS:
-        path = portrait_variant_path(ROOT, animal, "pajamas")
-        assert path.is_file()
-        with Image.open(path) as image:
-            assert image.size == (300, 320)
+        for outfit in ("pajamas", "suit", "streetwear"):
+            path = portrait_variant_path(ROOT, animal, outfit)
+            assert path.is_file(), (animal, outfit)
+            with Image.open(path) as image:
+                assert image.size == (300, 320)
+                assert image.convert("RGBA").getchannel("A").getextrema() == (0, 255)
     assert portrait_variant_path(ROOT, "cat", "hoodie") is None
 
 
