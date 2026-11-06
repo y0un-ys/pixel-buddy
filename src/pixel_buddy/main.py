@@ -147,8 +147,8 @@ class BuddyScene(QWidget):
                     illustration,
                     QRectF(0, 0, illustration.width(), illustration.height()),
                 )
-            # Outfit product icons are garment layers, not separate hands.
-            # The head and the real paws are restored from the selected animal.
+            # Full-character wardrobe portraits already contain the correct
+            # body, clothing and existing hands: never layer a floating coat.
             def paint_product(item_id):
                 if item_id not in self._product_art:
                     file = shop_icon_path(asset_root, item_id)
@@ -158,20 +158,6 @@ class BuddyScene(QWidget):
                     bx, by, bw, bh = SCENE_BOXES[item_id]
                     p.drawPixmap(QRectF(bx, by, bw, bh), art,
                                  QRectF(0, 0, art.width(), art.height()))
-
-            if outfit_id in ('suit', 'streetwear'):
-                paint_product(outfit_id)
-                # Clothing is below the face and existing illustrated hands.
-                p.save()
-                p.setClipRect(QRectF(105, 60, 180, 132))
-                p.drawPixmap(QRectF(center_x - width / 2, 68, width, height),
-                             illustration, QRectF(0, 0, illustration.width(), illustration.height()))
-                p.restore()
-                p.save()
-                p.setClipRect(QRectF(207, 196, 63, 38))
-                p.drawPixmap(QRectF(center_x - width / 2, 68, width, height),
-                             illustration, QRectF(0, 0, illustration.width(), illustration.height()))
-                p.restore()
 
             QSvgRenderer(QByteArray(foreground.encode('utf-8'))).render(
                 p, QRectF(0, 0, 480, 288))
